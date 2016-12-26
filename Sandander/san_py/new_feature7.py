@@ -19,6 +19,7 @@ from matplotlib import pyplot
 from xgboost.sklearn import XGBClassifier
 from sklearn import cross_validation, metrics   #Additional scklearn functions
 from sklearn.grid_search import GridSearchCV   #Perforing grid search
+import ffm
 
 mapping_dict = {'ind_empleado'  : {-99:0, 'N':1, 'B':2, 'F':3, 'A':4, 'S':5},
 'sexo'          : {'V':0, 'H':1, -99:2},
