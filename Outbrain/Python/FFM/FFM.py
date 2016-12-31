@@ -8,6 +8,7 @@ import sys
 from datetime import datetime
 from csv import DictReader
 from math import exp, log, sqrt
+import pandas as pd
 
 csv.field_size_limit(sys.maxsize)
 
@@ -17,13 +18,13 @@ csv.field_size_limit(sys.maxsize)
 
 ##############################################################################
 # parameters #################################################################
-######################################################-66########################
+##############################################################################
 
 # A, paths
 data_path = "/Users/xiaofeifei/I/Kaggle/Outbrain/"
 train = data_path+'new_train.csv'               # path to training file
 test = data_path+'clicks_test.csv'                 # path to testing file
-submission = 'sub_proba.csv'  # path of to be outputted submission file
+submission = 'sub_proba_poly.csv'  # path of to be outputted submission file
 
 # B, model
 alpha = .1  # learning rate
@@ -219,17 +220,20 @@ def data(path, D,prcont_dict,prcont_header,event_dict,event_header,leak_uuid_dic
 
         x = []
         for key in row:
-            x.append(abs(hash(key + '_' + row[key])) % D)
+            x.append({key:row[key]})
 
-        row = prcont_dict.get(ad_id, [])
+        row = prcont_dict.get(ad_id, [0,0,0])
+
         # build x
         ad_doc_id = -1
         for ind, val in enumerate(row):
             if ind==0:
                 ad_doc_id = int(val)
-            x.append(abs(hash(prcont_header[ind] + '_' + val)) % D)
 
-        row = event_dict.get(disp_id, [])
+            x.append({prcont_header[ind]: val})
+
+        row = event_dict.get(disp_id, [0,0,0,0,0,0,0])
+
         ## build x
         disp_doc_id = -1
         for ind, val in enumerate(row):
@@ -237,12 +241,12 @@ def data(path, D,prcont_dict,prcont_header,event_dict,event_header,leak_uuid_dic
                 uuid_val = val
             if ind==1:
                 disp_doc_id = int(val)
-            x.append(abs(hash(event_header[ind] + '_' + val)) % D)
+            x.append({event_header[ind]:val})
 
         if (ad_doc_id in leak_uuid_dict) and (uuid_val in leak_uuid_dict[ad_doc_id]):
-            x.append(abs(hash('leakage_row_found_1'))%D)
+            x.append({'leakage_row_found':1})
         else:
-            x.append(abs(hash('leakage_row_not_found'))%D)
+            x.append({'leakage_row_found':0})
 
         yield t, disp_id, ad_id, x, y
 
@@ -280,8 +284,8 @@ with open(data_path + "promoted_content.csv") as infile:
         prcont_dict[int(row[0])] = row[1:]
         if ind%100000 == 0:
             print(ind)
-        # if ind==10000:
-        #     break
+        if ind==10000:
+            break
     print(len(prcont_dict))
 del prcont
 
@@ -316,50 +320,12 @@ for e in range(epoch):
     loss = 0.
     count = 0
     date = 0
-
-    for t, disp_id, ad_id, x, y in data(train, D,prcont_dict,prcont_header,event_dict,event_header,leak_uuid_dict):
-        # data is a generator
-        #    t: just a instance counter
-        # date: you know what this is
-        #   ID: id provided in original data
-        #    x: features
-        #    y: label (click)
-
-        # step 1, get prediction from learner
-        p = learner.predict(x)
-
-        if (holdafter and date > holdafter) or (holdout and t % holdout == 0):
-            # step 2-1, calculate validation loss
-            #           we do not train with the validation data so that our
-            #           validation loss is an accurate estimation
-            #
-            # holdafter: train instances from day 1 to day N
-            #            validate with instances from day N + 1 and after
-            #
-            # holdout: validate with every N instance, train with others
-            loss += logloss(p, y)
-            count += 1
-        else:
-            # step 2-2, update learner with label (click) information
-            learner.update(x, p, y)
-
-        if t%1000000 == 0:
-            print("Processed : ", t, datetime.now())
-        # if t == 100000:
-        #     break
-
-
-##############################################################################
-# start testing, and build Kaggle's submission file ##########################
-##############################################################################
-
-with open(submission, 'w') as outfile:
-    outfile.write('display_id,ad_id,clicked\n')
+    a = []
+    b = []
     for t, disp_id, ad_id, x, y in data(test, D,prcont_dict,prcont_header,event_dict,event_header,leak_uuid_dict):
-        p = learner.predict(x)
-        outfile.write('%s,%s,%s\n' % (disp_id, ad_id, str(p)))
-        if t%1000000 == 0:
-            print("Processed : ", t, datetime.now())
-        # if t ==100000:
-        #     break
-print(datetime.now()-start)
+        if t > 100:
+            break
+        a.append(x)
+
+        print x
+
