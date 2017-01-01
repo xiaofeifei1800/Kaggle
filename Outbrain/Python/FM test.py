@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 from csv import DictReader
 from math import exp, log, sqrt
-import pandas
+import pandas as pd
 import pickle
 
 from pyfm import pylibfm
@@ -27,7 +27,7 @@ data_path = "/Users/xiaofeifei/I/Kaggle/Outbrain/"
 train = data_path+'clicks_train.csv'               # path to training file
 test = data_path+'clicks_test.csv'                 # path to testing file
 submission = 'sub_proba_FM.csv'  # path of to be outputted submission file
-
+D = 2**20
 def data(path, D,prcont_dict,prcont_header,event_dict,event_header,leak_uuid_dict):
     ''' GENERATOR: Apply hash-trick to the original csv row
                    and for simplicity, we one-hot-encode everything
@@ -123,8 +123,8 @@ with open(data_path + "promoted_content.csv") as infile:
         prcont_dict[int(row[0])] = row[1:]
         if ind%100000 == 0:
             print(ind)
-        # if ind==10000:
-        #     break
+        if ind==10000:
+            break
     print(len(prcont_dict))
 del prcont
 
@@ -149,8 +149,8 @@ with open(data_path + "events.csv") as infile:
         event_dict[int(row[0])] = tlist[:]
         if ind%100000 == 0:
             print("Events : ", ind)
-        # if ind==10000:
-        #     break
+        if ind==10000:
+            break
     print(len(event_dict))
 del events
 
@@ -160,12 +160,9 @@ test_x=[]
 disp_id_list = []
 ad_id_list = []
 for t, disp_id, ad_id, x, y in data(test, D, prcont_dict, prcont_header, event_dict, event_header, leak_uuid_dict):
-    # if t > 100:
-    #     break
+    if t > 100:
+        break
     test_x.append(x)
-
-with open('file.pkl', 'wb') as pickle_file:
-    pickle.dump(test_x, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
 # prob = fm.predict(v.transform(test_x))
 #

@@ -336,6 +336,9 @@ fm.fit(X,b)
 filename = 'finalized_model.sav'
 pickle.dump(fm, open(filename, 'wb'))
 
+filename = 'V_model.sav'
+pickle.dump(v, open(filename, 'wb'))
+
 # test_x=[]
 # disp_id_list = []
 # ad_id_list = []
