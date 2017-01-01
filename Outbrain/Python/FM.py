@@ -8,7 +8,7 @@ from math import exp, log, sqrt
 import pandas
 import pickle
 
-from pyfm import pylibfm
+# from pyfm import pylibfm
 
 from sklearn.feature_extraction import DictVectorizer
 
@@ -288,8 +288,8 @@ with open(data_path + "promoted_content.csv") as infile:
         prcont_dict[int(row[0])] = row[1:]
         if ind%100000 == 0:
             print(ind)
-        # if ind==10000:
-        #     break
+        if ind==10000:
+            break
     print(len(prcont_dict))
 del prcont
 
@@ -314,8 +314,8 @@ with open(data_path + "events.csv") as infile:
         event_dict[int(row[0])] = tlist[:]
         if ind%100000 == 0:
             print("Events : ", ind)
-        # if ind==10000:
-        #     break
+        if ind==10000:
+            break
     print(len(event_dict))
 del events
 
@@ -323,21 +323,22 @@ del events
 a = []
 b = []
 for t, disp_id, ad_id, x, y in data(train, D, prcont_dict, prcont_header, event_dict, event_header, leak_uuid_dict):
-    # if t > 100:
-    #     break
+    if t > 100:
+        break
     a.append(x)
     b.append(y)
+    print a
 
-v = DictVectorizer()
-X = v.fit_transform(a)
-fm = pylibfm.FM()
-fm.fit(X,b)
-
-filename = 'finalized_model.sav'
-pickle.dump(fm, open(filename, 'wb'))
-
-filename = 'V_model.sav'
-pickle.dump(v, open(filename, 'wb'))
+# v = DictVectorizer()
+# X = v.fit_transform(a)
+# fm = pylibfm.FM()
+# fm.fit(X,b)
+#
+# filename = 'finalized_model.sav'
+# pickle.dump(fm, open(filename, 'wb'))
+#
+# filename = 'V_model.sav'
+# pickle.dump(v, open(filename, 'wb'))
 
 # test_x=[]
 # disp_id_list = []

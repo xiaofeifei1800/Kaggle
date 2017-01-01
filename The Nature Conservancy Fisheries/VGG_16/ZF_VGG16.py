@@ -283,6 +283,7 @@ def copy_selected_drivers(train_data, train_target, driver_id, driver_list):
 
 def VGG_16():
     model = Sequential()
+    model.to_json()
     model.add(ZeroPadding2D((1, 1), input_shape=(3, 224, 224)))
     model.add(Convolution2D(64, 3, 3, activation='relu'))
     model.add(ZeroPadding2D((1,1)))
