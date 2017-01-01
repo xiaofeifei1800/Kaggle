@@ -5,7 +5,8 @@ import sys
 from datetime import datetime
 from csv import DictReader
 from math import exp, log, sqrt
-import pandas as pd
+import pandas
+import pickle
 
 from pyfm import pylibfm
 
@@ -287,8 +288,8 @@ with open(data_path + "promoted_content.csv") as infile:
         prcont_dict[int(row[0])] = row[1:]
         if ind%100000 == 0:
             print(ind)
-        if ind==10000:
-            break
+        # if ind==10000:
+        #     break
     print(len(prcont_dict))
 del prcont
 
@@ -313,8 +314,8 @@ with open(data_path + "events.csv") as infile:
         event_dict[int(row[0])] = tlist[:]
         if ind%100000 == 0:
             print("Events : ", ind)
-        if ind==10000:
-            break
+        # if ind==10000:
+        #     break
     print(len(event_dict))
 del events
 
@@ -322,8 +323,8 @@ del events
 a = []
 b = []
 for t, disp_id, ad_id, x, y in data(train, D, prcont_dict, prcont_header, event_dict, event_header, leak_uuid_dict):
-    if t > 100:
-        break
+    # if t > 100:
+    #     break
     a.append(x)
     b.append(y)
 
@@ -332,22 +333,25 @@ X = v.fit_transform(a)
 fm = pylibfm.FM()
 fm.fit(X,b)
 
-test_x=[]
-disp_id_list = []
-ad_id_list = []
-for t, disp_id, ad_id, x, y in data(test, D, prcont_dict, prcont_header, event_dict, event_header, leak_uuid_dict):
-    if t > 100:
-        break
-    test_x.append(x)
-    disp_id_list.append(disp_id)
-    ad_id_list.append(ad_id)
+filename = 'finalized_model.sav'
+pickle.dump(fm, open(filename, 'wb'))
 
-prob = fm.predict(v.transform(test_x))
-
-percentile_list = pd.DataFrame(
-    {'disp_id': disp_id_list,
-     'ad_id': ad_id_list,
-     'clicked': prob
-    })
-
-percentile_list.to_csv(submission)
+# test_x=[]
+# disp_id_list = []
+# ad_id_list = []
+# for t, disp_id, ad_id, x, y in data(test, D, prcont_dict, prcont_header, event_dict, event_header, leak_uuid_dict):
+#     # if t > 100:
+#     #     break
+#     test_x.append(x)
+#     disp_id_list.append(disp_id)
+#     ad_id_list.append(ad_id)
+#
+# prob = fm.predict(v.transform(test_x))
+#
+# percentile_list = pd.DataFrame(
+#     {'disp_id': disp_id_list,
+#      'ad_id': ad_id_list,
+#      'clicked': prob
+#     })
+#
+# percentile_list.to_csv(submission)
