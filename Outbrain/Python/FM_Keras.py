@@ -3,7 +3,7 @@
 # https://www.kaggle.com/qqgeogor
 #############################################################################################################
 
-import sys
+import os, sys
 import numpy as np
 from sklearn.base import BaseEstimator
 from keras.layers import Input, Embedding, Dense,Flatten, merge,Activation
@@ -17,12 +17,12 @@ from csv import DictReader
 import pandas as pd
 import pickle
 from sklearn.externals import joblib
-from sklearn.feature_extraction import DictVectorizer as DV
+from sklearn.preprocessing import OneHotEncoder
 
 csv.field_size_limit(sys.maxsize)
 
 data_path = "/Users/xiaofeifei/I/Kaggle/Outbrain/"
-train = data_path+'clicks_train.csv'               # path to training file
+train = data_path+'new_train.csv'               # path to training file
 test = data_path+'clicks_test.csv'                 # path to testing file
 
 D = 2**20
@@ -124,7 +124,7 @@ class KerasFM(BaseEstimator):
     def __init__(self,max_features=[],K=8,solver='adam',l2=0.0,l2_fm = 0.0):
         self.model = build_model(max_features,K,solver,l2=l2,l2_fm = l2_fm)
 
-    def fit(self,X,y,batch_size=128,nb_epoch=10,shuffle=True,verbose=1,validation_data=None):
+    def fit(self,X,y,batch_size=128,nb_epoch=1,shuffle=True,verbose=1,validation_data=None):
         self.model.fit(X,y,batch_size=batch_size,nb_epoch=nb_epoch,shuffle=shuffle,verbose=verbose,validation_data=None)
 
     def fit_generator(self,X,y,batch_size=128,nb_epoch=10,shuffle=True,verbose=1,validation_data=None,callbacks=None):
@@ -279,62 +279,69 @@ c = []
 for t, disp_id, ad_id, x, y in data(train, D, prcont_dict, prcont_header, event_dict, event_header, leak_uuid_dict):
     # if t > 105:
     #     break
-
+    if t%1000000 == 0:
+        print("train : ", t)
     a.append(x)
     b.append(y)
 
-a = pd.DataFrame(a)
-
-print "split train"
-data1 = a.ix[:,0]
-data2 = a.ix[:,1]
-data3 = a.ix[:,2]
-data4 = a.ix[:,3]
-data5 = a.ix[:,4]
-data6 = a.ix[:,5]
-data7 = a.ix[:,6]
-data8 = a.ix[:,7]
-data9 = a.ix[:,8]
-data10 = a.ix[:,9]
-
+enc = OneHotEncoder()
+enc.fit(a)
+train_one_hot = enc.transform(a)
 del a
 
-d = [2000000,2000000,2000000,2000000,2000000,2000000,2000000,2000000,
-     2000000,2000000]
-
-ml = KerasFM(max_features=d)
-
-print "fit model"
-ml.fit([data1,data2,data3,data4,data5,data6,data7,data8,data9,data10],b)
-
-del data1,data2,data3,data4,data5,data6,data7,data8,data9,data10
-
-print "start predict"
-a = []
-for t, disp_id, ad_id, x, y in data(test, D, prcont_dict, prcont_header, event_dict, event_header, leak_uuid_dict):
-    # if t > 105:
-    #     break
-    a.append(x)
-    print y
-
-a = pd.DataFrame(a)
-
-print "split test"
-data1 = a.ix[:,0]
-data2 = a.ix[:,1]
-data3 = a.ix[:,2]
-data4 = a.ix[:,3]
-data5 = a.ix[:,4]
-data6 = a.ix[:,5]
-data7 = a.ix[:,6]
-data8 = a.ix[:,7]
-data9 = a.ix[:,8]
-data10 = a.ix[:,9]
-
-del a
-
-prob = ml.predict([data1,data2,data3,data4,data5,data6,data7,data8,data9,data10])
-
-with open('Keras_FM.csv', 'wb') as myfile:
-    wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-    wr.writerow(prob)
+# a = pd.DataFrame(a)
+#
+# print "split train"
+# data1 = a.ix[:,0]
+# data2 = a.ix[:,1]
+# data3 = a.ix[:,2]
+# data4 = a.ix[:,3]
+# data5 = a.ix[:,4]
+# data6 = a.ix[:,5]
+# data7 = a.ix[:,6]
+# data8 = a.ix[:,7]
+# data9 = a.ix[:,8]
+# data10 = a.ix[:,9]
+#
+# del a
+#
+# d = [2000000,2000000,2000000,2000000,2000000,2000000,2000000,2000000,
+#      2000000,2000000]
+#
+# ml = KerasFM(max_features=d)
+#
+# print "fit model"
+# ml.fit([data1,data2,data3,data4,data5,data6,data7,data8,data9,data10],b)
+#
+# del data1,data2,data3,data4,data5,data6,data7,data8,data9,data10
+#
+# print "start predict"
+# a = []
+# for t, disp_id, ad_id, x, y in data(test, D, prcont_dict, prcont_header, event_dict, event_header, leak_uuid_dict):
+#     if t > 105:
+#         break
+#     a.append(x)
+#     if t%100000 == 0:
+#         print("test : ", t)
+#
+# a = pd.DataFrame(a)
+#
+# print "split test"
+# data1 = a.ix[:,0]
+# data2 = a.ix[:,1]
+# data3 = a.ix[:,2]
+# data4 = a.ix[:,3]
+# data5 = a.ix[:,4]
+# data6 = a.ix[:,5]
+# data7 = a.ix[:,6]
+# data8 = a.ix[:,7]
+# data9 = a.ix[:,8]
+# data10 = a.ix[:,9]
+#
+# del a
+#
+# prob = ml.predict([data1,data2,data3,data4,data5,data6,data7,data8,data9,data10])
+#
+# with open('Keras_FM.csv', 'wb') as myfile:
+#     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+#     wr.writerow(prob)

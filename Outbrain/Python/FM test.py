@@ -6,11 +6,9 @@ from datetime import datetime
 from csv import DictReader
 from math import exp, log, sqrt
 import pandas as pd
-import pickle
-
+import cPickle
 from pyfm import pylibfm
-
-from sklearn.feature_extraction import DictVectorizer
+from sklearn.preprocessing import OneHotEncoder
 
 csv.field_size_limit(sys.maxsize)
 
@@ -54,23 +52,19 @@ def data(path, D,prcont_dict,prcont_header,event_dict,event_header,leak_uuid_dic
             if row['clicked'] == '1':
                 y = 1.
             del row['clicked']
-
-        x = {}
+        x = []
         for key in row:
-            x[key]=row[key]
+            x.append(abs(hash(key + '_' + row[key])) % D)
 
-        row = prcont_dict.get(ad_id, [0,0,0])
-
+        row = prcont_dict.get(ad_id, ['0','0','0'])
         # build x
         ad_doc_id = -1
         for ind, val in enumerate(row):
             if ind==0:
                 ad_doc_id = int(val)
-            x[prcont_header[ind]]=val
+            x.append(abs(hash(prcont_header[ind] + '_' + val)) % D)
 
-
-        row = event_dict.get(disp_id, [0,0,0,0,0,0,0])
-
+        row = event_dict.get(disp_id, ['0','0','0','0','0','0','0'])
         ## build x
         disp_doc_id = -1
         for ind, val in enumerate(row):
@@ -78,17 +72,14 @@ def data(path, D,prcont_dict,prcont_header,event_dict,event_header,leak_uuid_dic
                 uuid_val = val
             if ind==1:
                 disp_doc_id = int(val)
-            x[event_header[ind]]=val
-
+            x.append(abs(hash(event_header[ind] + '_' + val)) % D)
 
         if (ad_doc_id in leak_uuid_dict) and (uuid_val in leak_uuid_dict[ad_doc_id]):
-
-            x['leakage_row_found'] = 1
+            x.append(abs(hash('leakage_row_found_1'))%D)
         else:
-            x['leakage_row_found'] = 0
+            x.append(abs(hash('leakage_row_not_found'))%D)
 
         yield t, disp_id, ad_id, x, y
-
 
 ##############################################################################
 # start training #############################################################
@@ -123,8 +114,8 @@ with open(data_path + "promoted_content.csv") as infile:
         prcont_dict[int(row[0])] = row[1:]
         if ind%100000 == 0:
             print(ind)
-        if ind==10000:
-            break
+        # if ind==10000:
+        #     break
     print(len(prcont_dict))
 del prcont
 
@@ -155,21 +146,53 @@ with open(data_path + "events.csv") as infile:
 del events
 
 # start training
-
-test_x=[]
-disp_id_list = []
-ad_id_list = []
-for t, disp_id, ad_id, x, y in data(test, D, prcont_dict, prcont_header, event_dict, event_header, leak_uuid_dict):
-    if t > 100:
+train_x = []
+train_y = []
+c = []
+for t, disp_id, ad_id, x, y in data(train, D, prcont_dict, prcont_header, event_dict, event_header, leak_uuid_dict):
+    if t > 15:
         break
+    if t%1000000 == 0:
+        print("train : ", t)
+    train_x.append(x)
+    train_y.append(y)
+
+test_x = []
+disp_id_list = []
+ad_id_list =[]
+for t, disp_id, ad_id, x, y in data(test, D, prcont_dict, prcont_header, event_dict, event_header, leak_uuid_dict):
+    if t > 15:
+        break
+    if t%1000000 == 0:
+        print("test : ", t)
     test_x.append(x)
+    disp_id_list.append(disp_id)
+    ad_id_list.append(ad_id_list)
 
-# prob = fm.predict(v.transform(test_x))
-#
-# percentile_list = pd.DataFrame(
-#     {'disp_id': disp_id_list,
-#      'ad_id': ad_id_list,
-#      'clicked': prob
-#     })
+del event_dict, prcont_dict, leak_uuid_dict
 
-# percentile_list.to_csv(submission)
+enc = OneHotEncoder()
+enc.fit(train_x+test_x)
+
+train_one_hot = enc.transform(train_x)
+del train_x
+
+fm = pylibfm.FM(num_iter=10)
+fm.fit(train_one_hot,train_y)
+
+del train_one_hot
+
+test_one_hot = enc.transform(test_x)
+del test_x
+
+prob = fm.predict(test_one_hot)
+
+del test_one_hot
+
+percentile_list = pd.DataFrame(
+    {'disp_id': disp_id_list,
+     'ad_id': ad_id_list,
+     'clicked': prob
+    })
+
+percentile_list.to_csv(submission)
