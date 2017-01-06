@@ -230,6 +230,7 @@ def data(path, D,prcont_dict,prcont_header,event_dict,event_header,leak_uuid_dic
             x.append(abs(hash(prcont_header[ind] + '_' + val)) % D)
 
         row = event_dict.get(disp_id, [])
+
         ## build x
         disp_doc_id = -1
         for ind, val in enumerate(row):
@@ -238,6 +239,12 @@ def data(path, D,prcont_dict,prcont_header,event_dict,event_header,leak_uuid_dic
             if ind==1:
                 disp_doc_id = int(val)
             x.append(abs(hash(event_header[ind] + '_' + val)) % D)
+
+        document_id = row[1]
+        row = document_dict.get(document_id, [])
+
+        for ind, val in enumerate(row):
+            x.append(abs(hash(prcont_header[ind] + '_' + val)) % D)
 
         if (ad_doc_id in leak_uuid_dict) and (uuid_val in leak_uuid_dict[ad_doc_id]):
             x.append(abs(hash('leakage_row_found_1'))%D)
@@ -269,6 +276,22 @@ with open(data_path+"leak.csv") as infile:
             print("Leakage file : ", ind)
     print(len(leak_uuid_dict))
 del doc
+
+print("document..")
+with open(data_path + "documents_meta.csv") as infile:
+    document = csv.reader(infile)
+    #prcont_header = (prcont.next())[1:]
+    document_header = next(document)[1:]
+    document_dict = {}
+    for ind,row in enumerate(document):
+        document_dict[int(row[0])] = row[1:]
+        if ind%100000 == 0:
+            print("document file : ", ind)
+        # if ind==10:
+        #     break
+    print(len(document_dict))
+
+del document
 
 print("Content..")
 with open(data_path + "promoted_content.csv") as infile:
@@ -345,7 +368,7 @@ for e in range(epoch):
 
         if t%1000000 == 0:
             print("Processed : ", t, datetime.now())
-        # if t == 100000:
+        # if t == 10:
         #     break
 
 

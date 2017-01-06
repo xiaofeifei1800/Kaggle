@@ -7,6 +7,7 @@ from csv import DictReader
 from math import exp, log, sqrt
 import pandas as pd
 import cPickle
+
 from pyfm import pylibfm
 from sklearn.preprocessing import OneHotEncoder
 
@@ -21,8 +22,8 @@ csv.field_size_limit(sys.maxsize)
 ##############################################################################
 
 # A, paths
-data_path = "/Users/xiaofeifei/I/Kaggle/Outbrain/"
-train = data_path+'clicks_train.csv'               # path to training file
+data_path = "/home/slfan/GuoxinLi/outbrain/"
+train = data_path+'new_train.csv'               # path to training file
 test = data_path+'clicks_test.csv'                 # path to testing file
 submission = 'sub_proba_FM.csv'  # path of to be outputted submission file
 D = 2**20
@@ -95,7 +96,7 @@ print("Leakage file..")
 leak_uuid_dict= {}
 with open(data_path+"leak.csv") as infile:
     doc = csv.reader(infile)
-    doc.next()
+    next(doc)
     for ind, row in enumerate(doc):
         doc_id = int(row[0])
         leak_uuid_dict[doc_id] = set(row[1].split(' '))
@@ -140,8 +141,8 @@ with open(data_path + "events.csv") as infile:
         event_dict[int(row[0])] = tlist[:]
         if ind%100000 == 0:
             print("Events : ", ind)
-        if ind==10000:
-            break
+        # if ind==10000:
+        #     break
     print(len(event_dict))
 del events
 
@@ -167,16 +168,19 @@ for t, disp_id, ad_id, x, y in data(test, D, prcont_dict, prcont_header, event_d
         print("test : ", t)
     test_x.append(x)
     disp_id_list.append(disp_id)
-    ad_id_list.append(ad_id_list)
+    ad_id_list.append(ad_id)
 
 del event_dict, prcont_dict, leak_uuid_dict
 
-enc = OneHotEncoder()
-enc.fit(train_x+test_x)
+print ("one hot")
+with open('/home/slfan/GuoxinLi/outbrain/my_dumped_one_hot_new.pkl', 'rb') as fid:
+    enc = cPickle.load(fid)
 
+print ("fit onehot")
 train_one_hot = enc.transform(train_x)
 del train_x
 
+print ("training")
 fm = pylibfm.FM(num_iter=10)
 fm.fit(train_one_hot,train_y)
 
@@ -195,4 +199,4 @@ percentile_list = pd.DataFrame(
      'clicked': prob
     })
 
-percentile_list.to_csv(submission)
+percentile_list.to_csv(submission,index=False)
