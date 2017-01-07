@@ -22,7 +22,7 @@ csv.field_size_limit(sys.maxsize)
 ##############################################################################
 
 # A, paths
-data_path = "/home/slfan/GuoxinLi/outbrain/"
+data_path = "/Users/xiaofeifei/I/Kaggle/Outbrain/"
 train = data_path+'new_train.csv'               # path to training file
 test = data_path+'clicks_test.csv'                 # path to testing file
 submission = 'sub_proba_FM.csv'  # path of to be outputted submission file
@@ -75,6 +75,11 @@ def data(path, D,prcont_dict,prcont_header,event_dict,event_header,leak_uuid_dic
                 disp_doc_id = int(val)
             x.append(abs(hash(event_header[ind] + '_' + val)) % D)
 
+        document_id = row[1]
+        row = document_dict.get(document_id, [])
+
+        for ind, val in enumerate(row):
+            x.append(abs(hash(prcont_header[ind] + '_' + val)) % D)
         if (ad_doc_id in leak_uuid_dict) and (uuid_val in leak_uuid_dict[ad_doc_id]):
             x.append(abs(hash('leakage_row_found_1'))%D)
         else:
@@ -104,6 +109,23 @@ with open(data_path+"leak.csv") as infile:
             print("Leakage file : ", ind)
     print(len(leak_uuid_dict))
 del doc
+
+
+print("document..")
+with open(data_path + "documents_meta.csv") as infile:
+    document = csv.reader(infile)
+    #prcont_header = (prcont.next())[1:]
+    document_header = next(document)[1:]
+    document_dict = {}
+    for ind,row in enumerate(document):
+        document_dict[int(row[0])] = row[1:]
+        if ind%100000 == 0:
+            print("document file : ", ind)
+        # if ind==10:
+        #     break
+    print(len(document_dict))
+
+del document
 
 print("Content..")
 with open(data_path + "promoted_content.csv") as infile:
@@ -151,8 +173,8 @@ train_x = []
 train_y = []
 c = []
 for t, disp_id, ad_id, x, y in data(train, D, prcont_dict, prcont_header, event_dict, event_header, leak_uuid_dict):
-    if t > 15:
-        break
+    # if t > 15:
+    #     break
     if t%1000000 == 0:
         print("train : ", t)
     train_x.append(x)
@@ -162,8 +184,8 @@ test_x = []
 disp_id_list = []
 ad_id_list =[]
 for t, disp_id, ad_id, x, y in data(test, D, prcont_dict, prcont_header, event_dict, event_header, leak_uuid_dict):
-    if t > 15:
-        break
+    # if t > 15:
+    #     break
     if t%1000000 == 0:
         print("test : ", t)
     test_x.append(x)
@@ -173,8 +195,8 @@ for t, disp_id, ad_id, x, y in data(test, D, prcont_dict, prcont_header, event_d
 del event_dict, prcont_dict, leak_uuid_dict
 
 print ("one hot")
-with open('/home/slfan/GuoxinLi/outbrain/my_dumped_one_hot_new.pkl', 'rb') as fid:
-    enc = cPickle.load(fid)
+enc = OneHotEncoder()
+enc.fit(train_x+test_x)
 
 print ("fit onehot")
 train_one_hot = enc.transform(train_x)
