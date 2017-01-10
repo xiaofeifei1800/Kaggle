@@ -244,7 +244,25 @@ def data(path, D,prcont_dict,prcont_header,event_dict,event_header,leak_uuid_dic
         row = document_dict.get(document_id, [])
 
         for ind, val in enumerate(row):
-            x.append(abs(hash(prcont_header[ind] + '_' + val)) % D)
+            x.append(abs(hash(document_header[ind] + '_' + val)) % D)
+
+        # cate
+        row = document_cate_dict.get(document_id, [])
+
+        for ind, val in enumerate(row):
+            x.append(abs(hash(document_cate_header[ind] + '_' + val)) % D)
+
+        # entities
+        row = document_en_dict.get(document_id, [])
+
+        for ind, val in enumerate(row):
+            x.append(abs(hash(document_en_header[ind] + '_' + val)) % D)
+
+        # topics
+        row = document_top_dict.get(document_id, [])
+
+        for ind, val in enumerate(row):
+            x.append(abs(hash(document_top_header[ind] + '_' + val)) % D)
 
         if (ad_doc_id in leak_uuid_dict) and (uuid_val in leak_uuid_dict[ad_doc_id]):
             x.append(abs(hash('leakage_row_found_1'))%D)
@@ -290,6 +308,52 @@ with open(data_path + "documents_meta.csv") as infile:
         # if ind==10:
         #     break
     print(len(document_dict))
+
+del document
+
+print("document..")
+with open(data_path + "documents_categories.csv") as infile:
+    document = csv.reader(infile)
+    #prcont_header = (prcont.next())[1:]
+    document_cate_header = next(document)[1:]
+    document_cate_dict = {}
+    for ind,row in enumerate(document):
+        document_cate_dict[int(row[0])] = row[1:]
+        if ind%100000 == 0:
+            print("document file : ", ind)
+        # if ind==10:
+        #     break
+    print(len(document_cate_dict))
+
+del document
+print("document..")
+with open(data_path + "documents_entities.csv") as infile:
+    document = csv.reader(infile)
+    #prcont_header = (prcont.next())[1:]
+    document_en_header = next(document)[1:]
+    document_en_dict = {}
+    for ind,row in enumerate(document):
+        document_en_dict[int(row[0])] = row[1:]
+        if ind%100000 == 0:
+            print("document file : ", ind)
+        # if ind==10:
+        #     break
+    print(len(document_en_dict))
+
+del document
+print("document..")
+with open(data_path + "documents_topics.csv") as infile:
+    document = csv.reader(infile)
+    #prcont_header = (prcont.next())[1:]
+    document_top_header = next(document)[1:]
+    document_top_dict = {}
+    for ind,row in enumerate(document):
+        document_top_dict[int(row[0])] = row[1:]
+        if ind%100000 == 0:
+            print("document file : ", ind)
+        # if ind==10:
+        #     break
+    print(len(document_top_dict))
 
 del document
 
