@@ -26,10 +26,10 @@ test = data_path+'clicks_test.csv'                 # path to testing file
 submission = 'sub_proba.csv'  # path of to be outputted submission file
 
 # B, model
-alpha = .1  # learning rate
-beta = 0.   # smoothing parameter for adaptive learning rate
-L1 = 0.    # L1 regularization, larger value means more regularized
-L2 = 0.     # L2 regularization, larger value means more regularized
+alpha = 1.1  # learning rate
+beta = 1.2   # smoothing parameter for adaptive learning rate
+L1 = 1.0    # L1 regularization, larger value means more regularized
+L2 = 1.0         # L2 regularization, larger value means more regularized
 
 # C, feature/hash trick
 D = 2 ** 20             # number of weights to use
