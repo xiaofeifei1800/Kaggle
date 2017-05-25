@@ -1,7 +1,7 @@
 # coding=utf-8
 # 48            1.254299           0.003719             1.210495
 # 49            1.248680
-from xgboost import plot_importance
+from xgbstarter import plot_importance
 from matplotlib import pyplot
 
 import csv
@@ -10,9 +10,9 @@ import random
 from operator import sub
 import numpy as np
 import pandas as pd
-import xgboost as xgb
+import xgbstarter as xgb
 from sklearn import preprocessing, ensemble
-from xgboost.sklearn import XGBClassifier
+from xgbstarter.sklearn import XGBClassifier
 from sklearn import cross_validation, metrics   #Additional scklearn functions
 from sklearn.grid_search import GridSearchCV   #Perforing grid search
 import matplotlib.pylab as plt

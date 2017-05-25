@@ -12,9 +12,9 @@ import random
 from operator import sub
 import numpy as np
 import pandas as pd
-import xgboost as xgb
+import xgbstarter as xgb
 from sklearn import preprocessing, ensemble
-from xgboost import plot_importance
+from xgbstarter import plot_importance
 from matplotlib import pyplot
 
 mapping_dict = {'ind_empleado'  : {-99:0, 'N':1, 'B':2, 'F':3, 'A':4, 'S':5},
