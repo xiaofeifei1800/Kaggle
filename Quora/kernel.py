@@ -50,8 +50,8 @@ def main():
 	params['max_depth'] = 5
 	params['silent'] = 1
 	params['seed'] = RS
+	params['n_jobs'] = 6
 
-	params["n_jobs"] = 6
 	df_train = pd.read_csv(input_folder + 'train.csv')
 	df_test  = pd.read_csv(input_folder + 'test.csv')
 
@@ -186,47 +186,62 @@ def main():
 	x_train = x[:df_train.shape[0]]
 	x_test  = x[df_train.shape[0]:]
 	y_train = df_train['is_duplicate'].values
-	x_train.to_csv(input_folder+"x_train", index=False)
-	x_test.to_csv(input_folder+"x_test", index=False)
-	y_train.to_csv(input_folder+"y_train", index=False)
+
+	x_train = pd.DataFrame(x_train)
+	x_test = pd.DataFrame(x_test)
+	y_train = pd.DataFrame(y_train)
+
+	x_train.to_csv(input_folder+"x_train.csv", index=False)
+	x_test.to_csv(input_folder+"x_test.csv", index=False)
+	y_train.to_csv(input_folder+"y_train_extra.csv", index=False)
 	del x, df_train
-
-	if 1: # Now we oversample the negative class - on your own risk of overfitting!
-		pos_train = x_train[y_train == 1]
-		neg_train = x_train[y_train == 0]
-		print len(pos_train)
-		print len(neg_train)
-		print("Oversampling started for proportion: {}".format(0.1*len(pos_train) / (0.1*(len(pos_train) + len(neg_train)))))
-		p = 0.165
-		scale = ((0.1*len(pos_train) / (0.1*(len(pos_train) + len(neg_train)))) / p) - 1
-		print scale
-		while scale > 1:
-			neg_train = pd.concat([neg_train, neg_train])
-			scale -=1
-		neg_train = pd.concat([neg_train, neg_train[:int(scale * len(neg_train))]])
-		print("Oversampling done, new proportion: {}".format(0.1*len(pos_train) / (0.1*(len(pos_train) + len(neg_train)))))
-
-		x_train = pd.concat([pos_train, neg_train])
-		y_train = (np.zeros(len(pos_train)) + 1).tolist() + np.zeros(len(neg_train)).tolist()
-		del pos_train, neg_train
-
-	print("Training data: X_train: {}, Y_train: {}, X_test: {}".format(x_train.shape, len(y_train), x_test.shape))
-	clr = train_xgb(x_train, y_train, params)
-	preds = predict_xgb(clr, x_test)
-
-	print("Writing output...")
-	sub = pd.DataFrame()
-	sub['test_id'] = df_test['test_id']
-	sub['is_duplicate'] = preds *.75
-	sub.to_csv("xgb_seed{}_n{}.csv".format(RS, ROUNDS), index=False)
-
-	print("Features importances...")
-	importance = clr.get_fscore(fmap='xgb.fmap')
-	importance = sorted(importance.items(), key=operator.itemgetter(1))
-	ft = pd.DataFrame(importance, columns=['feature', 'fscore'])
-
-	ft.plot(kind='barh', x='feature', y='fscore', legend=False, figsize=(10, 25))
-	plt.gcf().savefig('features_importance.png')
+    #
+    #
+	# x_train  = pd.read_csv(input_folder + 'x_train.csv')
+	# x_test  = pd.read_csv(input_folder + 'x_test.csv')
+    #
+	# y_train  = pd.read_csv(input_folder + 'y_train.csv')
+	# y_train.columns = ["y"]
+	# x_train  = pd.concat([x_train, y_train],axis=1)
+    #
+    #
+	# if 1: # Now we oversample the negative class - on your own risk of overfitting!
+	# 	pos_train = x_train[x_train["y"] == 1]
+	# 	neg_train = x_train[x_train["y"] == 0]
+	# 	print len(pos_train)
+	# 	print len(neg_train)
+	# 	print("Oversampling started for proportion: {}".format(0.1*len(pos_train) / (0.1*(len(pos_train) + len(neg_train)))))
+	# 	p = 0.165
+	# 	scale = ((0.1*len(pos_train) / (0.1*(len(pos_train) + len(neg_train)))) / p) - 1
+	# 	print scale
+	# 	while scale > 1:
+	# 		neg_train = pd.concat([neg_train, neg_train])
+	# 		scale -=1
+	# 	neg_train = pd.concat([neg_train, neg_train[:int(scale * len(neg_train))]])
+	# 	print("Oversampling done, new proportion: {}".format(0.1*len(pos_train) / (0.1*(len(pos_train) + len(neg_train)))))
+    #
+	# 	x_train = pd.concat([pos_train, neg_train])
+	# 	y_train = (np.zeros(len(pos_train)) + 1).tolist() + np.zeros(len(neg_train)).tolist()
+	# 	del pos_train, neg_train
+    #
+	# x_train = x_train.drop("y", axis=1,)
+	# print("Training data: X_train: {}, Y_train: {}, X_test: {}".format(x_train.shape, len(y_train), x_test.shape))
+	# clr = train_xgb(x_train, y_train, params)
+	# preds = predict_xgb(clr, x_test)
+    #
+	# print("Writing output...")
+	# sub = pd.DataFrame()
+	# sub['test_id'] = df_test['test_id']
+	# sub['is_duplicate'] = preds *.75
+	# sub.to_csv("xgb_seed{}_n{}.csv".format(RS, ROUNDS), index=False)
+    #
+	# print("Features importances...")
+	# importance = clr.get_fscore(fmap='xgb.fmap')
+	# importance = sorted(importance.items(), key=operator.itemgetter(1))
+	# ft = pd.DataFrame(importance, columns=['feature', 'fscore'])
+    #
+	# ft.plot(kind='barh', x='feature', y='fscore', legend=False, figsize=(10, 25))
+	# plt.gcf().savefig('features_importance.png')
 
 main()
 print("Done.")
