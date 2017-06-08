@@ -1,7 +1,7 @@
 library(dplyr)
 library(tidyr)
 library(data.table)
-train = fread("/Users/xiaofeifei/I/Kaggle/Santander/train_ver2.csv", header = T)
+train = fread("/.../Santander/data/train_ver2.csv", header = T)
 
 train$fecha_dato <- as.POSIXct(strptime(train$fecha_dato,format="%Y-%m-%d"))
 train$fecha_alta <- as.POSIXct(strptime(train$fecha_alta,format="%Y-%m-%d"))
@@ -80,6 +80,6 @@ train$conyuemp[train$conyuemp==""]               <- "UNKNOWN"
 train$segmento[train$segmento==""]               <- "UNKNOWN"
 
 
-fwrite(train, "/Users/xiaofeifei/I/Kaggle/Santander/train_clean.csv")
+fwrite(train, "/.../Santander/data/train_clean.csv")
 
 
