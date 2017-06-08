@@ -18,7 +18,7 @@ The best single model we have obtained during the competition was an XGBoost mod
     * You'll need to register with Kaggle and accept the agreement to download the data.
 * Extract all of the `.zip` files you downloaded.
 * Remove all the zip files by running `rm *.zip`.
-* Switch back into the `Santander` directory using `cd ..`.
+* Switch back into the `Quora` directory using `cd ..`.
 
 ### Install the requirements
  
