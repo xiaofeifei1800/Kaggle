@@ -12,7 +12,7 @@ Installation
 * Get into the folder using `cd Santander`.
 * Run `mkdir data`.
 * Switch into the `data` directory using `cd data`.
-* Download the data files from Fannie Mae into the `data` directory.  
+* Download the data files from Kaggle into the `data` directory.  
     * You can find the data [here](https://www.kaggle.com/c/santander-product-recommendation/data).
     * You'll need to register with Kaggle and accept the agreement to download the data.
 * Extract all of the `.zip` files you downloaded.
