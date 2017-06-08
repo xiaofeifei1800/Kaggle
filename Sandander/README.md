@@ -2,7 +2,9 @@ Santander Product Recommendation
 -----------------------
 
 This competition is aiming to predict which products their existing customers will use in the next month based on their past behavior and that of similar customers. [here](https://www.kaggle.com/c/santander-product-recommendation).
+
 The best single model we have obtained during the competition was an XGBoost model with multiclass booster of Public LB score 0.0301487 and Private LB score 0.0303696(Rank 124/1787 top7%).
+
 ----------------------
 
 ### Download the data
