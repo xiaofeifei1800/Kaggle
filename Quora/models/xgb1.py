@@ -16,10 +16,10 @@ def create_feature_map(features):
         outfile.close()
 
 def main():
-    input_folder = '/Users/xiaofeifei/I/Kaggle/Quora/'
+    input_folder = '/Users/xiaofeifei/I/Kaggle/Quora/data'
 
-    X_train  = pd.read_csv(input_folder + 'x_train_git.csv')
-    y_train = pd.read_csv(input_folder + "y_train copy.csv")
+    X_train  = pd.read_csv(input_folder + 'all_train.csv')
+    y_train = pd.read_csv(input_folder + "y_train.csv")
     y_train = y_train.values
     feature_names = list(X_train.columns.values)
     create_feature_map(feature_names)
@@ -71,7 +71,7 @@ def main():
     p_test = bst.predict(d_test)
     del d_test
     sub = pd.DataFrame()
-    df_test  = pd.read_csv(input_folder + 'test.csv')
+    df_test  = pd.read_csv(input_folder + 'all_test.csv')
     sub['test_id'] = df_test['test_id']
     sub['is_duplicate'] = p_test
     sub.to_csv(input_folder + 'predictions_clean_0.15.csv', index=False)

@@ -46,8 +46,12 @@ def sent2vec(s):
     v = M.sum(axis=0)
     return v / np.sqrt((v ** 2).sum())
 
+input_folder = '/Users/xiaofeifei/I/Kaggle/Quora/data'
+train  = pd.read_csv(input_folder + 'train_clean.csv')
+test = pd.read_csv(input_folder + 'test_clean.csv')
+data = pd.concat([train,test])
+del train, test
 
-data = pd.read_csv('data/quora_duplicate_questions.tsv', sep='\t')
 data = data.drop(['id', 'qid1', 'qid2'], axis=1)
 
 data['diff_len'] = data.len_q1 - data.len_q2
@@ -107,4 +111,4 @@ data['kur_q2vec'] = [kurtosis(x) for x in np.nan_to_num(question2_vectors)]
 cPickle.dump(question1_vectors, open('data/q1_w2v.pkl', 'wb'), -1)
 cPickle.dump(question2_vectors, open('data/q2_w2v.pkl', 'wb'), -1)
 
-data.to_csv('data/base_features2.csv', index=False)
+data.to_csv('base_features1.csv', index=False)

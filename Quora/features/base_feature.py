@@ -181,7 +181,7 @@ def create_feature_map(features):
         outfile.close()
 
 def main():
-    input_folder = '/Users/xiaofeifei/I/Kaggle/Quora/'
+    input_folder = '/Users/xiaofeifei/I/Kaggle/Quora/data'
     parser = argparse.ArgumentParser(description='XGB with Handcrafted Features')
     parser.add_argument('--save', type=str, default='XGB_leaky',
                         help='save_file_names')

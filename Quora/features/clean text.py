@@ -129,5 +129,9 @@ test.question2 = test_question2
 
 train["index"] = "train"
 test["index"] = "test"
+y = train["is_duplicated"]
+train.drop(["y"],axis=1,inplace=True)
+
 train.to_csv(input_folder+"train_clean.csv", index=False)
 test.to_csv(input_folder+"test_clean.csv", index=False)
+y.to_csv(input_folder+"y_train.csv", index=False)

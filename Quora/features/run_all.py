@@ -32,3 +32,7 @@ os.system(cmd)
 ### russian feature
 cmd = "python ./russian feature.py"
 os.system(cmd)
+
+### merge all feature
+cmd = "python ./merge.py"
+os.system(cmd)
