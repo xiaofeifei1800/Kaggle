@@ -1,5 +1,4 @@
 import re
-import sys
 
 import cPickle
 import numpy as np
@@ -229,8 +228,8 @@ if __name__ == "__main__":
 
     input_folder = '/Users/xiaofeifei/I/Kaggle/Quora/'
 
-    train  = pd.read_csv(input_folder + 'train.csv', nrows = 10)
-    test = pd.read_csv(input_folder + 'test.csv', nrows = 10)
+    train  = pd.read_csv(input_folder + 'train_clean.csv', nrows = 10)
+    test = pd.read_csv(input_folder + 'test_clean.csv', nrows = 10)
 
     dfTrain = pd.concat([train,test])
     print dfTrain.shape
@@ -238,49 +237,5 @@ if __name__ == "__main__":
     dfTrain['question2'] = dfTrain['question2'].fillna('')
 
     extract_basic_distance_feat(dfTrain)
-    print dfTrain
-    # print("For cross-validation...")
-    # for run in range(config.n_runs):
-    #     ## use 33% for training and 67 % for validation
-    #     ## so we switch trainInd and validInd
-    #     for fold, (validInd, trainInd) in enumerate(skf[run]):
-    #         print("Run: %d, Fold: %d" % (run+1, fold+1))
-    #         path = "%s/Run%d/Fold%d" % (config.feat_folder, run+1, fold+1)
-    #
-    #         for feat_name in feat_names:
-    #             X_train = dfTrain[feat_name].values[trainInd]
-    #             X_valid = dfTrain[feat_name].values[validInd]
-    #             with open("%s/train.%s.feat.pkl" % (path, feat_name), "wb") as f:
-    #                 cPickle.dump(X_train, f, -1)
-    #             with open("%s/valid.%s.feat.pkl" % (path, feat_name), "wb") as f:
-    #                 cPickle.dump(X_valid, f, -1)
-    #         ## extract statistical distance features
-    #         if stats_feat_flag:
-    #             dfTrain2 = dfTrain.iloc[trainInd].copy()
-    #             dfValid = dfTrain.iloc[validInd].copy()
-    #             extract_statistical_distance_feat(path, dfTrain2, dfValid, "valid", feat_names)
-    #
-    # print("Done.")
-    #
-    #
-    # print("For training and testing...")
-    # path = "%s/All" % config.feat_folder
-    # ## use full version for X_train
-    # extract_basic_distance_feat(dfTest)
-    # for feat_name in feat_names:
-    #     X_train = dfTrain[feat_name].values
-    #     X_test = dfTest[feat_name].values
-    #     with open("%s/train.%s.feat.pkl" % (path, feat_name), "wb") as f:
-    #         cPickle.dump(X_train, f, -1)
-    #     with open("%s/test.%s.feat.pkl" % (path, feat_name), "wb") as f:
-    #         cPickle.dump(X_test, f, -1)
-    # ## extract statistical distance features
-    # if stats_feat_flag:
-    #     feat_names = extract_statistical_distance_feat(path, dfTrain, dfTest, "test", feat_names)
-    #
-    # ## save feat names
-    # print("Feature names are stored in %s" % feat_name_file)
-    # ## dump feat name
-    # dump_feat_name(feat_names, feat_name_file)
-    #
-    # print("All Done.")
+    dfTrain.to_csv(input_folder+"distance_feature.csv", index=False)
+

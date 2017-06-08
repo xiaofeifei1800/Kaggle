@@ -1,74 +1,19 @@
 # -*- coding: utf-8 -*-
-# import matplotlib
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-pd.set_option('display.max_columns', 500)
-import seaborn as sns
-# sns.set_style("dark")
-# plt.rcParams['figure.figsize'] = 16, 12
-from tqdm import tqdm, tqdm_notebook
-import itertools as it
-import pickle
-import glob
-import os
+
+import spacy
 import string
-
+import numpy as np
+import pandas as pd
 from scipy import sparse
-
-import nltk
-# import spacy
-
-from sklearn.model_selection import StratifiedKFold, cross_val_score, GridSearchCV
-from sklearn.pipeline import Pipeline
+import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+from sklearn.model_selection import StratifiedKFold
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.linear_model import SGDClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import log_loss, make_scorer
 from sklearn.decomposition import TruncatedSVD
 
-from scipy.optimize import minimize
-
-# import eli5
-from IPython.display import display
-
-import xgboost as xgb
-
-def plot_real_feature(df, fname):
-    fig = plt.figure()
-    ax1 = plt.subplot2grid((3, 2), (0, 0), colspan=2)
-    ax2 = plt.subplot2grid((3, 2), (1, 0), colspan=2)
-    ax3 = plt.subplot2grid((3, 2), (2, 0))
-    ax4 = plt.subplot2grid((3, 2), (2, 1))
-    ax1.set_title('Distribution of %s' % fname, fontsize=20)
-    sns.distplot(df.loc[ix_train][fname],
-                 bins=50,
-                 ax=ax1)
-    sns.distplot(df.loc[ix_is_dup][fname],
-                 bins=50,
-                 ax=ax2,
-                 label='is dup')
-    sns.distplot(df.loc[ix_not_dup][fname],
-                 bins=50,
-                 ax=ax2,
-                 label='not dup')
-    ax2.legend(loc='upper right', prop={'size': 18})
-    sns.boxplot(y=fname,
-                x='is_duplicate',
-                data=df.loc[ix_train],
-                ax=ax3)
-    sns.violinplot(y=fname,
-                   x='is_duplicate',
-                   data=df.loc[ix_train],
-                   ax=ax4)
-    plt.show()
-
-
-
 input_folder = '/Users/xiaofeifei/I/Kaggle/Quora/'
-# df = pd.read_csv(input_folder+"x_train_russian.csv")
-
 df_train = pd.read_csv(input_folder + 'train_clean.csv',
                        dtype={
                            'question1': np.str,
@@ -108,44 +53,6 @@ gamma_1 = r1/d[1]
 def link_function(x):
     return gamma_1*x/(gamma_1*x + gamma_0*(1 - x))
 
-def check_model(predictors, data=None, do_scaling=True):
-    classifier = lambda: SGDClassifier(
-        loss='log',
-        penalty='elasticnet',
-        fit_intercept=True,
-        n_iter=100,
-        shuffle=True,
-        n_jobs=-1,
-        class_weight=None)
-
-    steps = []
-    if do_scaling:
-        steps.append(('ss', StandardScaler()))
-    steps.append(('en', classifier()))
-
-    model = Pipeline(steps=steps)
-
-    parameters = {
-        'en__alpha': [0.00001, 0.0001, 0.001, 0.01, 0.02, 0.1, 0.5, 0.9, 1],
-        'en__l1_ratio': [0, 0.0001, 0.001, 0.01, 0.1, 0.3, 0.5, 0.75, 0.9, 1]
-    }
-
-    folder = StratifiedKFold(n_splits=5, shuffle=True)
-
-    grid_search = GridSearchCV(
-        model,
-        parameters,
-        cv=folder,
-        n_jobs=-1,
-        verbose=1)
-    if data is None:
-        grid_search = grid_search.fit(df.loc[ix_train][predictors],
-                                      df.loc[ix_train]['is_duplicate'])
-    else:
-        grid_search = grid_search.fit(data['X'],
-                                      data['y'])
-
-    return grid_search
 #########
 df['len1'] = df['question1'].str.len().astype(np.float32)
 df['len2'] = df['question2'].str.len().astype(np.float32)
@@ -175,42 +82,6 @@ df['ratio_len1_len2'] = df['ratio_len1_len2'].apply(lambda x: x if x < replace_v
 # log ratio
 df['log_ratio_len1_len2'] = np.log(df['ratio_len1_len2'] + 1)
 
-# build model
-predictors = df.columns[7:].tolist()
-print predictors
-
-def check_model(predictors):
-    classifier = lambda: SGDClassifier(
-        loss='log',
-        penalty='elasticnet',
-        fit_intercept=True,
-        n_iter=100,
-        shuffle=True,
-        n_jobs=-1,
-        class_weight=None)
-
-    model = Pipeline(steps=[
-        ('ss', StandardScaler()),
-        ('en', classifier())
-    ])
-
-    parameters = {
-        'en__alpha': [0.00001, 0.0001, 0.001, 0.01, 0.02, 0.1, 0.5, 0.9, 1],
-        'en__l1_ratio': [0, 0.0001, 0.001, 0.01, 0.1, 0.3, 0.5, 0.75, 0.9, 1]
-    }
-
-    folder = StratifiedKFold(n_splits=5, shuffle=True)
-
-    grid_search = GridSearchCV(
-        model,
-        parameters,
-        cv=folder,
-        n_jobs=-1,
-        verbose=1)
-    grid_search = grid_search.fit(df.loc[ix_train][predictors],
-                                  df.loc[ix_train]['is_duplicate'])
-
-    return grid_search
 #
 cv_char = CountVectorizer(ngram_range=(1, 3), analyzer='char')
 ch_freq = np.array(cv_char.fit_transform(df['question1'].tolist() + df['question2'].tolist()).sum(axis=0))[0, :]
@@ -228,76 +99,76 @@ m_q1 = cv_char.transform(df['question1'].values)
 m_q2 = cv_char.transform(df['question2'].values)
 
 
-# v_num = (m_q1[:, ix_unigrams] > 0).minimum((m_q2[:, ix_unigrams] > 0)).sum(axis=1)
-# v_den = (m_q1[:, ix_unigrams] > 0).maximum((m_q2[:, ix_unigrams] > 0)).sum(axis=1)
-# v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
-#
-# df['unigram_jaccard'] = v_score
-#
-# v_num = m_q1[:, ix_unigrams].minimum(m_q2[:, ix_unigrams]).sum(axis=1)
-# v_den = m_q1[:, ix_unigrams].sum(axis=1) + m_q2[:, ix_unigrams].sum(axis=1)
-# v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
-#
-# df['unigram_all_jaccard'] = v_score
-#
-# v_num = m_q1[:, ix_unigrams].minimum(m_q2[:, ix_unigrams]).sum(axis=1)
-# v_den = m_q1[:, ix_unigrams].maximum(m_q2[:, ix_unigrams]).sum(axis=1)
-# v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
-#
-# df['unigram_all_jaccard_max'] = v_score
-#
-# #Bigrams
-# v_num = (m_q1[:, ix_bigrams] > 0).minimum((m_q2[:, ix_bigrams] > 0)).sum(axis=1)
-# v_den = (m_q1[:, ix_bigrams] > 0).maximum((m_q2[:, ix_bigrams] > 0)).sum(axis=1)
-# v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
-#
-# df['bigram_jaccard'] = v_score
-#
-# df.loc[df['bigram_jaccard'] < -1.478751, 'bigram_jaccard'] = -1.478751
-# df.loc[df['bigram_jaccard'] > 1.0, 'bigram_jaccard'] = 1.0
-#
-# v_num = m_q1[:, ix_bigrams].minimum(m_q2[:, ix_bigrams]).sum(axis=1)
-# v_den = m_q1[:, ix_bigrams].sum(axis=1) + m_q2[:, ix_bigrams].sum(axis=1)
-# v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
-#
-# df['bigram_all_jaccard'] = v_score
-#
-# v_num = m_q1[:, ix_bigrams].minimum(m_q2[:, ix_bigrams]).sum(axis=1)
-# v_den = m_q1[:, ix_bigrams].maximum(m_q2[:, ix_bigrams]).sum(axis=1)
-# v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
-#
-# df['bigram_all_jaccard_max'] = v_score
+v_num = (m_q1[:, ix_unigrams] > 0).minimum((m_q2[:, ix_unigrams] > 0)).sum(axis=1)
+v_den = (m_q1[:, ix_unigrams] > 0).maximum((m_q2[:, ix_unigrams] > 0)).sum(axis=1)
+v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
+
+df['unigram_jaccard'] = v_score
+
+v_num = m_q1[:, ix_unigrams].minimum(m_q2[:, ix_unigrams]).sum(axis=1)
+v_den = m_q1[:, ix_unigrams].sum(axis=1) + m_q2[:, ix_unigrams].sum(axis=1)
+v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
+
+df['unigram_all_jaccard'] = v_score
+
+v_num = m_q1[:, ix_unigrams].minimum(m_q2[:, ix_unigrams]).sum(axis=1)
+v_den = m_q1[:, ix_unigrams].maximum(m_q2[:, ix_unigrams]).sum(axis=1)
+v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
+
+df['unigram_all_jaccard_max'] = v_score
+
+#Bigrams
+v_num = (m_q1[:, ix_bigrams] > 0).minimum((m_q2[:, ix_bigrams] > 0)).sum(axis=1)
+v_den = (m_q1[:, ix_bigrams] > 0).maximum((m_q2[:, ix_bigrams] > 0)).sum(axis=1)
+v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
+
+df['bigram_jaccard'] = v_score
+
+df.loc[df['bigram_jaccard'] < -1.478751, 'bigram_jaccard'] = -1.478751
+df.loc[df['bigram_jaccard'] > 1.0, 'bigram_jaccard'] = 1.0
+
+v_num = m_q1[:, ix_bigrams].minimum(m_q2[:, ix_bigrams]).sum(axis=1)
+v_den = m_q1[:, ix_bigrams].sum(axis=1) + m_q2[:, ix_bigrams].sum(axis=1)
+v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
+
+df['bigram_all_jaccard'] = v_score
+
+v_num = m_q1[:, ix_bigrams].minimum(m_q2[:, ix_bigrams]).sum(axis=1)
+v_den = m_q1[:, ix_bigrams].maximum(m_q2[:, ix_bigrams]).sum(axis=1)
+v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
+
+df['bigram_all_jaccard_max'] = v_score
 
 # trigrams
-# m_q1 = m_q1[:, ix_trigrams]
-# m_q2 = m_q2[:, ix_trigrams]
+m_q1 = m_q1[:, ix_trigrams]
+m_q2 = m_q2[:, ix_trigrams]
 
-# v_num = (m_q1[:, ix_trigrams] > 0).minimum((m_q2[:, ix_trigrams] > 0)).sum(axis=1)
-# v_den = (m_q1[:, ix_trigrams] > 0).maximum((m_q2[:, ix_trigrams] > 0)).sum(axis=1)
-# v_den[np.where(v_den == 0)] = 1
-# v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
-#
-# df['trigram_jaccard'] = v_score
-#
-# v_num = m_q1[:, ix_trigrams].minimum(m_q2[:, ix_trigrams]).sum(axis=1)
-# v_den = m_q1[:, ix_trigrams].sum(axis=1) + m_q2[:, ix_trigrams].sum(axis=1)
-# v_den[np.where(v_den == 0)] = 1
-# v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
-#
-# df['trigram_all_jaccard'] = v_score
-#
-# v_num = m_q1[:, ix_trigrams].minimum(m_q2[:, ix_trigrams]).sum(axis=1)
-# v_den = m_q1[:, ix_trigrams].maximum(m_q2[:, ix_trigrams]).sum(axis=1)
-# v_den[np.where(v_den == 0)] = 1
-# v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
-#
-# df['trigram_all_jaccard_max'] = v_score
+v_num = (m_q1[:, ix_trigrams] > 0).minimum((m_q2[:, ix_trigrams] > 0)).sum(axis=1)
+v_den = (m_q1[:, ix_trigrams] > 0).maximum((m_q2[:, ix_trigrams] > 0)).sum(axis=1)
+v_den[np.where(v_den == 0)] = 1
+v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
+
+df['trigram_jaccard'] = v_score
+
+v_num = m_q1[:, ix_trigrams].minimum(m_q2[:, ix_trigrams]).sum(axis=1)
+v_den = m_q1[:, ix_trigrams].sum(axis=1) + m_q2[:, ix_trigrams].sum(axis=1)
+v_den[np.where(v_den == 0)] = 1
+v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
+
+df['trigram_all_jaccard'] = v_score
+
+v_num = m_q1[:, ix_trigrams].minimum(m_q2[:, ix_trigrams]).sum(axis=1)
+v_den = m_q1[:, ix_trigrams].maximum(m_q2[:, ix_trigrams]).sum(axis=1)
+v_den[np.where(v_den == 0)] = 1
+v_score = np.array(v_num.flatten()).astype(np.float32)[0, :]/np.array(v_den.flatten())[0, :]
+
+df['trigram_all_jaccard_max'] = v_score
 
 # tfidf on tri
 # 1,2,3, 2 and 3 same, not 1
 # ix_unigrams, ix_bigrams, ix_trigrams
-# m_q1 = m_q1[:, ix_unigrams]
-# m_q2 = m_q2[:, ix_unigrams]
+m_q1 = m_q1[:, ix_unigrams]
+m_q2 = m_q2[:, ix_unigrams]
 ##########################
 print "start unigram"
 
@@ -320,8 +191,6 @@ v_den[np.where(v_den == 0)] = 1
 v_score = 1 - v_num/v_den
 
 df['unigram_tfidf_cosine'] = v_score
-
-# plot_real_feature(df, 'trigram_tfidf_cosine')
 
 # 1, not too much diff, 2 and 3 same
 tft = TfidfTransformer(
@@ -755,231 +624,64 @@ df.loc[ix_train, 'm_q1_q2_tf_oof_tr'] = data['y_train_pred']
 df.loc[ix_test, 'm_q1_q2_tf_oof_tr'] = data['y_test_pred_fixed']
 del(data)
 
-df.to_csv(input_folder+"x_train_russian1.csv", index=False)
+svd = TruncatedSVD(n_components=100)
+m_svd = svd.fit_transform(sparse.csc_matrix(sparse.hstack((m_q1_tf, m_q2_tf))))
 
-# svd = TruncatedSVD(n_components=100)
-# m_svd = svd.fit_transform(sparse.csc_matrix(sparse.hstack((m_q1_tf, m_q2_tf))))
-#
-# data={
-#     'X_train': m_svd[ix_train, :],
-#     'y_train': df.loc[ix_train]['is_duplicate'],
-#     'X_test': m_svd[ix_test, :],
-#     'y_train_pred': np.zeros(ix_train.shape[0]),
-#     'y_test_pred': []
-# }
-# n_splits = 10
-# folder = StratifiedKFold(n_splits=n_splits, shuffle=True)
-# for ix_first, ix_second in folder.split(np.zeros(data['y_train'].shape[0]), data['y_train']):
-#     # {'en__l1_ratio': 0.5, 'en__alpha': 1e-05}
-#     model = SGDClassifier(
-#         loss='log',
-#         penalty='elasticnet',
-#         fit_intercept=True,
-#         n_iter=100,
-#         shuffle=True,
-#         n_jobs=-1,
-#         l1_ratio=0.5,
-#         alpha=1e-05,
-#         class_weight=None)
-#     model = model.fit(data['X_train'][ix_first, :], data['y_train'][ix_first])
-#     data['y_train_pred'][ix_second] = model.predict_proba(data['X_train'][ix_second, :])[:, 1]
-#     data['y_test_pred'].append(model.predict_proba(data['X_test'])[:, 1])
-#
-# print "finish prediction 1"
-# data['y_test_pred'] = np.array(data['y_test_pred']).T.mean(axis=1)
-#
-# mp = np.mean(data['y_train_pred'])
-# print mp
-#
-# def func(w):
-#     return (mp*data['y_test_pred'].shape[0] -
-#             np.sum(w[0]*data['y_test_pred']/(w[0]*data['y_test_pred'] +
-#                                              (1 - w[0]) * (1 - data['y_test_pred']))))**2
-#
-# print func(np.array([1]))
-#
-# res = minimize(func, np.array([1]), method='L-BFGS-B', bounds=[(0, 1)])
-#
-# print res
-#
-# w = res['x'][0]
-#
-# def fix_function(x):
-#     return w*x/(w*x + (1 - w)*(1 - x))
-#
-# data['y_test_pred_fixed'] = fix_function(data['y_test_pred'])
-#
-# df['m_q1_q2_tf_svd100_oof'] = np.zeros(df.shape[0])
-# df.loc[ix_train, 'm_q1_q2_tf_svd100_oof'] = data['y_train_pred']
-# df.loc[ix_test, 'm_q1_q2_tf_svd100_oof'] = data['y_test_pred_fixed']
-# del(data)
-# df.to_csv(input_folder+"x_train_russian1.csv", index=False)
-# del(m_q1, m_q2, m_svd)
+data={
+    'X_train': m_svd[ix_train, :],
+    'y_train': df.loc[ix_train]['is_duplicate'],
+    'X_test': m_svd[ix_test, :],
+    'y_train_pred': np.zeros(ix_train.shape[0]),
+    'y_test_pred': []
+}
+n_splits = 10
+folder = StratifiedKFold(n_splits=n_splits, shuffle=True)
+for ix_first, ix_second in folder.split(np.zeros(data['y_train'].shape[0]), data['y_train']):
+    # {'en__l1_ratio': 0.5, 'en__alpha': 1e-05}
+    model = SGDClassifier(
+        loss='log',
+        penalty='elasticnet',
+        fit_intercept=True,
+        n_iter=100,
+        shuffle=True,
+        n_jobs=-1,
+        l1_ratio=0.5,
+        alpha=1e-05,
+        class_weight=None)
+    model = model.fit(data['X_train'][ix_first, :], data['y_train'][ix_first])
+    data['y_train_pred'][ix_second] = model.predict_proba(data['X_train'][ix_second, :])[:, 1]
+    data['y_test_pred'].append(model.predict_proba(data['X_test'])[:, 1])
 
-# m_diff_q1_q2 = m_q1_tf - m_q2_tf
-#
-# data={
-#     'X_train': m_diff_q1_q2[ix_train, :],
-#     'y_train': df.loc[ix_train]['is_duplicate'],
-#     'X_test': m_diff_q1_q2[ix_test, :],
-#     'y_train_pred': np.zeros(ix_train.shape[0]),
-#     'y_test_pred': []
-# }
-#
-# n_splits = 10
-#
-# folder = StratifiedKFold(n_splits= n_splits, shuffle=True)
-# for ix_first, ix_second in tqdm_notebook(folder.split(np.zeros(data['y_train'].shape[0]), data['y_train']),
-#                                          total=n_splits):
-#     # {'en__l1_ratio': 0.01, 'en__alpha': 0.001}
-#     model = SGDClassifier(
-#         loss='log',
-#         penalty='elasticnet',
-#         fit_intercept=True,
-#         n_iter=100,
-#         shuffle=True,
-#         n_jobs=-1,
-#         l1_ratio=0.01,
-#         alpha=0.001,
-#         class_weight=None)
-#     model = model.fit(data['X_train'][ix_first, :], data['y_train'][ix_first])
-#     data['y_train_pred'][ix_second] = model.predict_proba(data['X_train'][ix_second, :])[:, 1]
-#     data['y_test_pred'].append(model.predict_proba(data['X_test'])[:, 1])
-#
-# print "finish prediction 3"
-# data['y_test_pred'] = np.array(data['y_test_pred']).T.mean(axis=1)
-#
-# df['m_diff_q1_q2_tf_oof'] = np.zeros(df.shape[0])
-# df.loc[ix_train, 'm_diff_q1_q2_tf_oof'] = data['y_train_pred']
-# df.loc[ix_test, 'm_diff_q1_q2_tf_oof'] = data['y_test_pred']
-# del(data)
-#
-# df.to_csv(input_folder+"x_train_russian1.csv", index=False)
-# m_svd_q1 = m_svd[:m_svd.shape[0]/2, :]
-# m_svd_q2 = m_svd[m_svd.shape[0]/2:, :]
-#
-# df['m_vstack_svd_q1_q1_euclidean'] = ((m_svd_q1 - m_svd_q2)**2).mean(axis=1)
-# num = (m_svd_q1*m_svd_q2).sum(axis=1)
-# den = np.sqrt((m_svd_q1**2).sum(axis=1))*np.sqrt((m_svd_q2**2).sum(axis=1))
-# num[np.where(den == 0)] = 0
-# den[np.where(den == 0)] = 1
-# df['m_vstack_svd_q1_q1_cosine'] = 1 - num/den
-#
-# m_svd = m_svd_q1*m_svd_q2
-#
-# data={
-#     'X_train': m_svd[ix_train, :],
-#     'y_train': df.loc[ix_train]['is_duplicate'],
-#     'X_test': m_svd[ix_test, :],
-#     'y_train_pred': np.zeros(ix_train.shape[0]),
-#     'y_test_pred': []
-# }
-# del(m_svd)
-#
-# n_splits = 10
-# folder = StratifiedKFold(n_splits=n_splits, shuffle=True)
-# for ix_first, ix_second in folder.split(np.zeros(data['y_train'].shape[0]), data['y_train']):
-#     # {'en__l1_ratio': 1, 'en__alpha': 1e-05}
-#     model = SGDClassifier(
-#         loss='log',
-#         penalty='elasticnet',
-#         fit_intercept=True,
-#         n_iter=100,
-#         shuffle=True,
-#         n_jobs=-1,
-#         l1_ratio=1.0,
-#         alpha=1e-05,
-#         class_weight=None)
-#     model = model.fit(data['X_train'][ix_first, :], data['y_train'][ix_first])
-#     data['y_train_pred'][ix_second] = model.predict_proba(data['X_train'][ix_second, :])[:, 1]
-#     data['y_test_pred'].append(model.predict_proba(data['X_test'])[:, 1])
-# print "finish prediction 4"
-# data['y_test_pred'] = np.array(data['y_test_pred']).T.mean(axis=1)
-#
-# mp = np.mean(data['y_train_pred'])
-# print mp
-#
-# def func(w):
-#     return (mp*data['y_test_pred'].shape[0] -
-#             np.sum(w[0]*data['y_test_pred']/(w[0]*data['y_test_pred'] +
-#                                              (1 - w[0]) * (1 - data['y_test_pred']))))**2
-#
-# print func(np.array([1]))
-#
-# res = minimize(func, np.array([1]), method='L-BFGS-B', bounds=[(0, 1)])
-#
-# print res
-#
-# w = res['x'][0]
-#
-# def fix_function(x):
-#     return w*x/(w*x + (1 - w)*(1 - x))
-#
-# data['y_test_pred_fixed'] = fix_function(data['y_test_pred'])
-#
-# df['m_vstack_svd_mult_q1_q2_oof'] = np.zeros(df.shape[0])
-# df.loc[ix_train, 'm_vstack_svd_mult_q1_q2_oof'] = data['y_train_pred']
-# df.loc[ix_test, 'm_vstack_svd_mult_q1_q2_oof'] = data['y_test_pred_fixed']
-# del(data)
-#
-# df.to_csv(input_folder+"x_train_russian1.csv", index=False)
-#
-# m_svd = np.abs(m_svd_q1 - m_svd_q2)
-#
-# data={
-#     'X_train': m_svd[ix_train, :],
-#     'y_train': df.loc[ix_train]['is_duplicate'],
-#     'X_test': m_svd[ix_test, :],
-#     'y_train_pred': np.zeros(ix_train.shape[0]),
-#     'y_test_pred': []
-# }
-# del(m_svd, m_svd_q1, m_svd_q2)
-#
-# n_splits = 10
-# folder = StratifiedKFold(n_splits=n_splits, shuffle=True)
-# for ix_first, ix_second in folder.split(np.zeros(data['y_train'].shape[0]), data['y_train']):
-#     # {'en__l1_ratio': 0.01, 'en__alpha': 1e-05}
-#     model = SGDClassifier(
-#         loss='log',
-#         penalty='elasticnet',
-#         fit_intercept=True,
-#         n_iter=100,
-#         shuffle=True,
-#         n_jobs=-1,
-#         l1_ratio=0.01,
-#         alpha=1e-05,
-#         class_weight=None)
-#     model = model.fit(data['X_train'][ix_first, :], data['y_train'][ix_first])
-#     data['y_train_pred'][ix_second] = model.predict_proba(data['X_train'][ix_second, :])[:, 1]
-#     data['y_test_pred'].append(model.predict_proba(data['X_test'])[:, 1])
-#
-# print "finish prediction 5"
-# data['y_test_pred'] = np.array(data['y_test_pred']).T.mean(axis=1)
-#
-# mp = np.mean(data['y_train_pred'])
-# print mp
-#
-# def func(w):
-#     return (mp*data['y_test_pred'].shape[0] -
-#             np.sum(w[0]*data['y_test_pred']/(w[0]*data['y_test_pred'] +
-#                                              (1 - w[0]) * (1 - data['y_test_pred']))))**2
-#
-# print func(np.array([1]))
-#
-# res = minimize(func, np.array([1]), method='L-BFGS-B', bounds=[(0, 1)])
-#
-# print res
-#
-# w = res['x'][0]
-#
-# def fix_function(x):
-#     return w*x/(w*x + (1 - w)*(1 - x))
-#
-# df['m_vstack_svd_absdiff_q1_q2_oof'] = np.zeros(df.shape[0])
-# df.loc[ix_train, 'm_vstack_svd_absdiff_q1_q2_oof'] = data['y_train_pred']
-# df.loc[ix_test, 'm_vstack_svd_absdiff_q1_q2_oof'] = data['y_test_pred']
-# del(data)
-# df.to_csv(input_folder+"x_train_russian1.csv", index=False)
+print "finish prediction 1"
+data['y_test_pred'] = np.array(data['y_test_pred']).T.mean(axis=1)
+
+mp = np.mean(data['y_train_pred'])
+print mp
+
+def func(w):
+    return (mp*data['y_test_pred'].shape[0] -
+            np.sum(w[0]*data['y_test_pred']/(w[0]*data['y_test_pred'] +
+                                             (1 - w[0]) * (1 - data['y_test_pred']))))**2
+
+print func(np.array([1]))
+
+res = minimize(func, np.array([1]), method='L-BFGS-B', bounds=[(0, 1)])
+
+print res
+
+w = res['x'][0]
+
+def fix_function(x):
+    return w*x/(w*x + (1 - w)*(1 - x))
+
+data['y_test_pred_fixed'] = fix_function(data['y_test_pred'])
+
+df['m_q1_q2_tf_svd100_oof'] = np.zeros(df.shape[0])
+df.loc[ix_train, 'm_q1_q2_tf_svd100_oof'] = data['y_train_pred']
+df.loc[ix_test, 'm_q1_q2_tf_svd100_oof'] = data['y_test_pred_fixed']
+del(data)
+del(m_q1, m_q2, m_svd)
+
 
 # whole data
 nlp = spacy.load('en')
@@ -1111,4 +813,4 @@ df['m_w1l_tfidf_oof'] = np.zeros(df.shape[0])
 df.loc[ix_train, 'm_w1l_tfidf_oof'] = data['y_train_pred']
 df.loc[ix_test, 'm_w1l_tfidf_oof'] = data['y_test_pred_fixed']
 del(data)
-df.to_csv(input_folder+"x_train_russian1.csv", index=False)
+df.to_csv(input_folder+"russian_feature.csv", index=False)

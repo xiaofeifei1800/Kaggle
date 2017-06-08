@@ -1,6 +1,4 @@
 import re
-import sys
-import cPickle
 import numpy as np
 from nlp_utils import stopwords, english_stemmer, stem_tokens
 from feat_utils import try_divide, dump_feat_name
@@ -133,20 +131,6 @@ def extract_feat(df):
 
 if __name__ == "__main__":
 
-    ###############
-    ## Load Data ##
-    ###############
-    ## load data
-    # with open(config.processed_train_data_path, "rb") as f:
-    #     dfTrain = cPickle.load(f)
-    # with open(config.processed_test_data_path, "rb") as f:
-    #     dfTest = cPickle.load(f)
-    # ## load pre-defined stratified k-fold index
-    # with open("%s/stratifiedKFold.%s.pkl" % (config.data_folder, config.stratified_label), "rb") as f:
-    #         skf = cPickle.load(f)
-    #
-    # ## file to save feat names
-    # feat_name_file = "%s/counting.feat_name" % config.feat_folder
     input_folder = '/Users/xiaofeifei/I/Kaggle/Quora/'
     train  = pd.read_csv(input_folder + 'train_clean.csv')
     test = pd.read_csv(input_folder + 'test_clean.csv')
@@ -162,54 +146,4 @@ if __name__ == "__main__":
 
 
     extract_feat(dfTrain)
-    dfTrain.to_csv(input_folder+"df_clean_git.csv", index=False)
-    #
-    # feat_names = [
-    #     name for name in dfTrain.columns \
-    #         if "count" in name \
-    #         or "ratio" in name \
-    #         or "div" in name \
-    #         or "pos_of" in name
-    # ]
-    # feat_names.append("description_missing")
-    #
-    #
-    # print("For cross-validation...")
-    # for run in range(config.n_runs):
-    #     ## use 33% for training and 67 % for validation
-    #     ## so we switch trainInd and validInd
-    #     for fold, (validInd, trainInd) in enumerate(skf[run]):
-    #         print("Run: %d, Fold: %d" % (run+1, fold+1))
-    #         path = "%s/Run%d/Fold%d" % (config.feat_folder, run+1, fold+1)
-    #
-    #         #########################
-    #         ## get word count feat ##
-    #         #########################
-    #         for feat_name in feat_names:
-    #             X_train = dfTrain[feat_name].values[trainInd]
-    #             X_valid = dfTrain[feat_name].values[validInd]
-    #             with open("%s/train.%s.feat.pkl" % (path, feat_name), "wb") as f:
-    #                 cPickle.dump(X_train, f, -1)
-    #             with open("%s/valid.%s.feat.pkl" % (path, feat_name), "wb") as f:
-    #                 cPickle.dump(X_valid, f, -1)
-    # print("Done.")
-    #
-    #
-    # print("For training and testing...")
-    # path = "%s/All" % config.feat_folder
-    # ## use full version for X_train
-    # extract_feat(dfTest)
-    # for feat_name in feat_names:
-    #     X_train = dfTrain[feat_name].values
-    #     X_test = dfTest[feat_name].values
-    #     with open("%s/train.%s.feat.pkl" % (path, feat_name), "wb") as f:
-    #         cPickle.dump(X_train, f, -1)
-    #     with open("%s/test.%s.feat.pkl" % (path, feat_name), "wb") as f:
-    #         cPickle.dump(X_test, f, -1)
-    #
-    # ## save feat names
-    # print("Feature names are stored in %s" % feat_name_file)
-    # ## dump feat name
-    # dump_feat_name(feat_names, feat_name_file)
-    #
-    # print("All Done.")
+    dfTrain.to_csv(input_folder+"count_feature.csv", index=False)

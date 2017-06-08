@@ -1,0 +1,17 @@
+operator
+numpy
+nltk
+re
+string
+copy
+cPickle
+timeit
+networkx
+pandas
+xgboost
+sklearn
+matplotlib
+spacy
+gensim
+fuzzywuzzy
+tqdm

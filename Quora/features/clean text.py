@@ -1,7 +1,4 @@
 import pandas as pd
-import numpy as np
-import nltk
-from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
 import re
 from string import punctuation
@@ -130,5 +127,7 @@ train.question2 = train_question2
 test.question1 = test_question1
 test.question2 = test_question2
 
+train["index"] = "train"
+test["index"] = "test"
 train.to_csv(input_folder+"train_clean.csv", index=False)
 test.to_csv(input_folder+"test_clean.csv", index=False)
