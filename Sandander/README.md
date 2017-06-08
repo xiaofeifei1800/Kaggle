@@ -29,8 +29,9 @@ The best single model we have obtained during the competition was an XGBoost mod
 Usage
 -----------------------
 
+* Run`R clean data.R` to proprocess the train and test data(I am sorry to mix with R and Python)
 * Switch to `feature` directory using `cd feature`
-* Run `python creat_feature.py` to clean data set and generate new features.
+* Run `python creat_feature.py` to generate new features.
     * This will replace the origanial train and test data in data folder.
 * Switch to `model` dirctory using `cd` back to Santander and `cd model`
 * Run `python xgb.py`.
