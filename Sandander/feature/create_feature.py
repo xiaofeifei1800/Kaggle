@@ -120,7 +120,7 @@ def processDataMK(in_file_name, cust_dict, lag_cust_dict,total_dict,lag1,lag2,la
 
 if __name__ == "__main__":
 
-    data_path = "/.../Santander/"
+    data_path = "/.../Santander/data"
     train_file =  open(data_path + "train.csv")
     x_vars_list, y_vars_list, cust_dict, lag_cust_dict,total_dict,lag1,lag2,lag3,lag12,lag_feature = \
         processDataMK(train_file, {}, {},{},{},{},{},{},{})
