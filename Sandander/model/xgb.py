@@ -32,7 +32,7 @@ def runXGB(train_X, train_y, seed_val=845895):
 if __name__ == "__main__":
 
     start_time = datetime.datetime.now()
-    data_path = "/.../Santander/"
+    data_path = "/.../Santander/data"
     with open(data_path+ "x_train.pkl", "rb") as f:
         train_X = cPickle.load(f)
 
