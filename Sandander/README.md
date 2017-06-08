@@ -1,7 +1,7 @@
 Santander Product Recommendation (124/1787 top7%)
 -----------------------
 
-o predict which products their existing customers will use in the next month based on their past behavior and that of similar customers. [here](https://www.kaggle.com/c/santander-product-recommendation).
+This competition is aiming to predict which products their existing customers will use in the next month based on their past behavior and that of similar customers. [here](https://www.kaggle.com/c/santander-product-recommendation).
 
 Installation
 ----------------------
@@ -9,7 +9,7 @@ Installation
 ### Download the data
 
 * Clone this repo to your computer.
-* Get into the folder using `cd loan-prediction`.
+* Get into the folder using `cd Santander`.
 * Run `mkdir data`.
 * Switch into the `data` directory using `cd data`.
 * Download the data files from Fannie Mae into the `data` directory.  
