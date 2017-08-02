@@ -128,7 +128,6 @@ gc()
 # Train / Test datasets ---------------------------------------------------
 train <- as.data.frame(data[data$eval_set == "train",])
 train$eval_set <- NULL
-train$user_id <- NULL
 train$product_id <- NULL
 train$order_id <- NULL
 train$reordered[is.na(train$reordered)] <- 0
@@ -158,9 +157,25 @@ params <- list(
   "lambda"              = 10
 )
 
-subtrain <- train %>% sample_frac(0.1)
-X <- xgb.DMatrix(as.matrix(train %>% select(-reordered)), label = train$reordered)
-model <- xgboost(data = X, params = params, nrounds = 200, nthread = 6)
+set.seed(112)
+user_id = unique(train$user_id)
+valid_set = sample(length(user_id), 0.1*length(user_id))
+valid_set = user_id[valid_set]
+train_set = user_id[!user_id %in% valid_set]
+
+train_set = train[train$user_id %in% train_set,]
+valid_set = train[train$user_id %in% valid_set,]
+
+train_set$user_id <- NULL
+valid_set$user_id <- NULL
+
+dtrain <- xgb.DMatrix(as.matrix(train_set %>% select(-reordered)), label = train_set$reordered)
+dvalid <- xgb.DMatrix(as.matrix(valid_set %>% select(-reordered)), label = valid_set$reordered)
+
+watchlist = list(train=dtrain, test=dvalid)
+
+model <- xgb.train(data = dtrain, params = params, nrounds = 80, nthread = 6, watchlist = watchlist,
+                   early_stopping_rounds = 10)
 
 importance <- xgb.importance(colnames(X), model = model)
 xgb.ggplot.importance(importance)
@@ -188,4 +203,4 @@ missing <- data.frame(
 )
 
 submission <- submission %>% bind_rows(missing) %>% arrange(order_id)
-write.csv(submission, file = "submit.csv", row.names = F)
+write.csv(submission, file = "test_cv.csv", row.names = F)
