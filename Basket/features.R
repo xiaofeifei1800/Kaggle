@@ -11,38 +11,26 @@ library(data.table)
 library(dplyr)
 library(tidyr)
 
-
+#
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
 # Load Data ---------------------------------------------------------------
 path <- "/Users/xiaofeifei/I/Kaggle/Basket/"
-
-aisles <- fread(file.path(path, "aisles.csv"))
-departments <- fread(file.path(path, "departments.csv"))
 orderp <- fread(file.path(path, "order_products__prior.csv"))
-ordert <- fread(file.path(path, "order_products__train.csv"), nrows = 2000)
-orders <- fread(file.path(path, "orders.csv"), nrows = 2000)
+ordert <- fread(file.path(path, "order_products__train.csv"))
+orders <- fread(file.path(path, "orders.csv"))
 products <- fread(file.path(path, "products.csv"))
 
-recency_order = orders %>%
-    group_by(user_id) %>%
-    slice(c(n()-2,n()-1, n())) %>%
-    ungroup()
-
 # Reshape data ------------------------------------------------------------
-aisles$aisle <- as.factor(aisles$aisle)
-departments$department <- as.factor(departments$department)
 orders$eval_set <- as.factor(orders$eval_set)
-products$product_name <- as.factor(products$product_name)
-
-products <- products %>% 
-  inner_join(aisles) %>% inner_join(departments) %>% 
-  select(-aisle_id, -department_id)
-rm(aisles, departments)
-
 ordert$user_id <- orders$user_id[match(ordert$order_id, orders$order_id)]
 
-orders_products <- orders %>% inner_join(orderp, by = "order_id")
+orders_products <- orders %>% inner_join(orderp, by = "order_id") %>% 
+  left_join(select(products,-product_name))
 
-rm(orderp)
+rm(orderp,products)
 gc()
 
 
@@ -72,15 +60,6 @@ prd$prod_reorder_ratio <- prd$prod_reorders / prd$prod_orders
 
 prd <- prd %>% select(-prod_first_orders, -prod_second_orders)
 
-# _user_buy_product_times: 用户是第几次购买该商品 too early
-# user_buy_product <- orders_products %>%
-#   group_by(user_id, product_id) %>%
-#   mutate(product_time = row_number())
-# 
-# user_buy_product = user_buy_product[,c("user_id", "product_id","product_time")]
-
-
-rm(products)
 gc()
 
 # Users -------------------------------------------------------------------
@@ -90,12 +69,19 @@ users <- orders %>%
   summarise(
     # 用户的总订单数
     user_orders = max(order_number),
-    # total user time 
+    # total user time
     user_period = sum(days_since_prior_order, na.rm = T),
     user_mean_days_since_prior = mean(days_since_prior_order, na.rm = T),
     user_median_days_since_prior = median(days_since_prior_order, na.rm = T),
     user_sd_days_since_prior = var(days_since_prior_order, na.rm = T)
   )
+
+user_mode = orders[orders$eval_set == "prior", c("user_id", "order_hour_of_day", "order_dow")]
+# user preferred time of day
+user_mode[,up_last_day:=Mode(order_hour_of_day), by = user_id]
+# user preferred day of week
+user_mode[,up_most_dow:=Mode(order_dow), by = user_id]
+user_mode = unique(user_mode[, c("user_id", "up_last_day", "up_most_dow")])
 
 us <- orders_products %>%
   group_by(user_id) %>%
@@ -107,10 +93,10 @@ us <- orders_products %>%
     #用户购买的unique商品数
     user_distinct_products = n_distinct(product_id),
     #用户购买的unique department
-    user_median_basket = median(user_order_product_num)
+    user_median_basket = n_distinct(department_id)
   )
 
-users <- users %>% inner_join(us)
+users <- users %>% inner_join(us) %>% inner_join(user_mode)
 users$user_average_basket <- users$user_total_products / users$user_orders
 
 us <- orders %>%
@@ -120,23 +106,76 @@ us <- orders %>%
 
 users <- users %>% inner_join(us)
 
-rm(us)
+users <- orders_products %>%
+  group_by(user_id, order_id) %>%
+  summarise(order_size = n()) %>%
+  ungroup() %>%
+  group_by(user_id) %>%
+  summarise(mean_order_size = mean(order_size)) %>%
+  right_join(users)
+
+
+rm(us, user_mode)
 gc()
 
 # User time interaction----------------------------------------------------------------
-# similar features for products and aisles
-#user preferred day of week, user preferred time of day,
-#users, #orders, order frequency, reorder rate, recency, mean add_to_cart_order, etc.
-#Products purchased, #Orders made, frequency and recency of orders, #Aisle purchased from, 
-#Department purchased from, frequency and recency of reorders, tenure, mean order size, etc.
+
+user_dow = orders_products %>%
+  group_by(user_id, order_dow) %>%
+  summarise(
+    # 用户购买该商品的总次数
+    ut_product = n(),
+    ut_reoreder = sum(reordered == 1),
+    ut_user = n_distinct(user_id),
+    ut_orders = n_distinct(order_id),
+    ut_department = n_distinct(department_id),
+    ut_aisle = n_distinct(aisle_id)
+  )
+user_dow$ua_order_frequency <- user_dow$ut_orders / user_dow$ut_user
+user_dow$ut_reorder_ratio <- user_dow$ut_reoreder / user_dow$ut_orders
+
+user_hour = orders_products %>%
+  group_by(user_id, order_hour_of_day) %>%
+  summarise(
+    # 用户购买该商品的总次数
+    uh_product = n(),
+    uh_reoreder = sum(reordered == 1),
+    uh_user = n_distinct(user_id),
+    uh_orders = n_distinct(order_id),
+    uh_department = n_distinct(department_id),
+    uh_aisle = n_distinct(aisle_id)
+  )
+user_hour$uh_order_frequency <- user_hour$uh_orders / user_hour$uh_user
+user_hour$uh_reorder_ratio <- user_hour$uh_reoreder / user_hour$uh_orders
 
 # User aisle and department interaction ----------------------------------------------------------------
 # similar to product features
 #users, #orders, order frequency, reorder rate, recency, mean add_to_cart_order, etc.
+user_aisle = orders_products %>%
+  group_by(user_id, aisle_id) %>%
+  summarise(
+    # 用户购买该商品的总次数
+    ua_product = n(),
+    ua_reoreder = sum(reordered == 1),
+    ua_user = n_distinct(user_id),
+    ua_orders = n_distinct(order_id),
+    ua_add_to_cart = mean(add_to_cart_order)
+  )
+user_aisle$ua_reorder_ratio <- user_aisle$ua_reoreder / user_aisle$ua_orders
+user_aisle$ua_order_frequency <- user_aisle$ua_orders / user_aisle$ua_user
 
-# User aisle and department interaction: 
-#similar to product features
-#purchases, #reorders, #day since last purchase, #order since last purchase etc.
+user_depart = orders_products %>%
+  group_by(user_id, department_id) %>%
+  summarise(
+    # 用户购买该商品的总次数
+    ud_product = n(),
+    ud_reoreder = sum(reordered == 1),
+    ud_user = n_distinct(user_id),
+    ud_orders = n_distinct(order_id),
+    ud_add_to_cart = mean(add_to_cart_order)
+  )
+user_depart$ud_reorder_ratio <- user_depart$ud_reoreder / user_depart$ud_orders
+user_depart$ud_order_frequency <- user_depart$ud_orders / user_depart$ud_user
 
 # Database ----------------------------------------------------------------
 # product last order time 
@@ -151,17 +190,17 @@ data <- orders_products %>%
     # 用户购买该商品第一次在哪个order里
     up_first_order = min(order_number),
     # # 用户购买该商品最后2次在哪个order里
-    up_se_last_order = max( c(0,order_number)[c(0,order_number)!=max(c(0,order_number))], na.rm = T),
+    # up_se_last_order = max( c(0,order_number)[c(0,order_number)!=max(c(0,order_number))], na.rm = T),
     # 用户购买该商品最后一次在哪个order里
     up_last_order = max(order_number),
     #该商品被添加到购物篮中的平均位置
     up_average_cart_position = mean(add_to_cart_order),
     # mean order_hour_of_day
-    up_last_day = mean(order_hour_of_day),
-    # mpde order_hour_of_day
-    up_last_day = which.max(table(order_hour_of_day)),
-    # mod order_dow
-    up_most_dow = which.max(table(order_dow))
+    up_last_day = mean(order_hour_of_day)
+    # mode order_hour_of_day
+    # up_last_day = which.max(table(order_hour_of_day)),
+    # mode order_dow
+    # up_most_dow = which.max(table(order_dow))
     )
 
 data <- orders_products %>%
@@ -179,8 +218,12 @@ rm(orders_products, orders)
 
 data <- data %>% 
   inner_join(prd, by = "product_id") %>%
-  inner_join(users, by = "user_id") 
+  inner_join(users, by = "user_id") %>%
+  inner_join(select(products,-product_name), by = "product_id") %>%
+  inner_join(user_aisle, by = c("user_id", "aisle_id")) %>%
+  inner_join(user_depart, by = c("user_id", "department_id"))
   # inner_join(user_buy_product, by = c("user_id", "product_id"))
+
 
 #该商品购买次数 / 总的订单数
 data$up_order_rate <- data$up_orders / data$user_orders
@@ -204,10 +247,10 @@ gc()
 # add word2vec
 products <- fread(file.path(path, "products.csv"))
 word2vec = fread(file.path(path, "word2vec.csv"))
-prod_name = fread(file.path(path, "pca_name.csv"))
+# prod_name = fread(file.path(path, "pca_name.csv"))
 
 products = left_join(products,word2vec)
-products = left_join(products,prod_name)
+# products = left_join(products,prod_name)
 products[is.na(products)] = 0
 
 rm(word2vec)
@@ -218,3 +261,6 @@ setkey(data, product_id)
 setkey(products, product_id)
 
 data = merge(data, products, all.x = T)
+fwrite(data, file = "/Users/xiaofeifei/I/Kaggle/Basket/feature.csv", row.names = F)
+
+
