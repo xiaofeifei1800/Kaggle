@@ -175,12 +175,21 @@ rm(orders, orders_products)
 data = fread("/Users/xiaofeifei/I/Kaggle/Basket/feature.csv")
 
 data = data %>%
-  inner_join(a)
-  # left_join(d, by = "department_id")%>%
-  # left_join(p, by = "product_id")%>%
-  # left_join(pa, by = "aisle_id", "product_id")%>%
-  # left_join(pd, by = "department_id", "product_id")%>%
-  # inner_join(up)
-
-data1 = data1 %>%
+  # left_join(a)
+  # left_join(d)
+  # left_join(p)
+  # left_join(pa)
+  # left_join(pd)
   left_join(up)
+
+fwrite(data, file = "/Users/xiaofeifei/I/Kaggle/Basket/feature.csv", row.names = F)
+
+data = as.data.table(data)
+data = data[,c("eval_set","order_id","product_id","reordered","user_id",importance$Feature[1:50]), with = FALSE]
+
+  
+  
+  
+
+
+
