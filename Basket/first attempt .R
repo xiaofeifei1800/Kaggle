@@ -178,10 +178,10 @@ rm(train)
 
 watchlist = list(train=dtrain, test=dvalid)
 
-model <- xgb.train(data = dtrain, params = params, nrounds = 250, nthread = 6, watchlist = watchlist,
+model <- xgb.train(data = dtrain, params = params, nrounds = 300, nthread = 6, watchlist = watchlist,
                    early_stopping_rounds = 10)
 
-importance <- xgb.importance(colnames(train), model = model)
+importance <- xgb.importance(colnames(train_set), model = model)
 xgb.ggplot.importance(importance)
 
 rm(train_set, valid_set)
@@ -192,7 +192,7 @@ gc()
 X <- xgb.DMatrix(as.matrix(test %>% select(-order_id,-product_id)))
 test$reordered <- predict(model, X)
 
-fwrite(test[,c("order_id","product_id","reordered")], file = "/Users/xiaofeifei/I/Kaggle/Basket/result1.csv", row.names = F)
+fwrite(test[,c("order_id","product_id","reordered")], file = "/Users/xiaofeifei/I/Kaggle/Basket/result2.csv", row.names = F)
 
 test$reordered <- (test$reordered > 0.21) * 1
 
@@ -212,11 +212,11 @@ submission <- submission %>% bind_rows(missing) %>% arrange(order_id)
 fwrite(submission, file = "test_cv.csv", row.names = F)
 
 
-data = fread("/Users/xiaofeifei/I/Kaggle/Basket/F1_max_f.csv")
+data = fread("/Users/xiaofeifei/I/Kaggle/Basket/F1_max_2.csv")
 data = data[-1,]
 
 colnames(data) = c("products", "order_id")
 
 data = data[,c(2,1)]
 
-fwrite(data, file = "/Users/xiaofeifei/I/Kaggle/Basket/F1_max_f.csv", row.names = F)
+fwrite(data, file = "/Users/xiaofeifei/I/Kaggle/Basket/F1_max_2.csv", row.names = F)
