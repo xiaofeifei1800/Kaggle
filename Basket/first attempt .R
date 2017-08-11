@@ -178,7 +178,7 @@ rm(train)
 
 watchlist = list(train=dtrain, test=dvalid)
 
-model <- xgb.train(data = dtrain, params = params, nrounds = 300, nthread = 6, watchlist = watchlist,
+model <- xgb.train(data = dtrain, params = params, nrounds = 250, nthread = 6, watchlist = watchlist,
                    early_stopping_rounds = 10)
 
 importance <- xgb.importance(colnames(train_set), model = model)
@@ -192,7 +192,7 @@ gc()
 X <- xgb.DMatrix(as.matrix(test %>% select(-order_id,-product_id)))
 test$reordered <- predict(model, X)
 
-fwrite(test[,c("order_id","product_id","reordered")], file = "/Users/xiaofeifei/I/Kaggle/Basket/result2.csv", row.names = F)
+fwrite(test[,c("order_id","product_id","reordered")], file = "/Users/xiaofeifei/I/Kaggle/Basket/result3.csv", row.names = F)
 
 test$reordered <- (test$reordered > 0.21) * 1
 
