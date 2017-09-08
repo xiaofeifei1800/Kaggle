@@ -29,12 +29,12 @@ The best model we have obtained during the competition was ensemble the top 4 be
 Usage
 -----------------------
 
-* Run`R clean data.R` to proprocess the train and test data(I am sorry to mix with R and Python)
-* Switch to `feature` directory using `cd feature`
-* Run `python creat_feature.py` to generate new features.
-    * This will replace the origanial train and test data in data folder.
-* Switch to `model` dirctory using `cd` back to Santander and `cd model`
-* Run `python xgb.py`.
-    * This will dirctly train the xgboost model without CV, and predict the probability of each products
-    . The final predict results are the 7 products with the highest probability.
+* Switch to `code/feature` directory using `cd code/feature`
+* Run all R and Python files except `combine_all_features.R` to generate new features. The features files are all parallel, so they can be run in any order.
+* Run `combine_all_features.R` after run all other files in `code/feature`.(it is not necessary to run this file, combining features also can be customed in `model/lgbm.py`)
+* Switch to `model` dirctory
+* Run `lgbm.py`.
+    * This will dirctly train the lgbm model without CV, and predict the probability of each products
+* Run `F1 score max.py`.
+    * This will select the reordered products for each customer by maximizing F1 score.(This script is mainly contributed by faron)
 
