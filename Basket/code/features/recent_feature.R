@@ -1,12 +1,3 @@
-###########################################################################################################
-#
-# Kaggle Instacart competition
-# Fabien Vavrand, June 2017
-# Simple xgboost starter, score 0.3791 on LB
-# Products selection is based on product by product binary classification, with a global threshold (0.21)
-#
-###########################################################################################################
-
 library(data.table)
 library(dplyr)
 library(tidyr)
@@ -21,12 +12,14 @@ orderp <- fread(file.path(path, "order_products__prior.csv"))
 
 orders <- fread(file.path(path, "orders.csv"))
 products <- fread(file.path(path, "products.csv"))
+
+# select last 3 orders
 orders = orders %>%
   group_by(user_id) %>%
   slice(c(n()-2,n()-1, n())) %>%
   ungroup()
 
-# Reshape data ------------------------------------------------------------
+# combine data ------------------------------------------------------------
 aisles$aisle <- as.factor(aisles$aisle)
 departments$department <- as.factor(departments$department)
 orders$eval_set <- as.factor(orders$eval_set)
@@ -34,6 +27,10 @@ products$product_name <- as.factor(products$product_name)
 
 orders_products <- orders %>% inner_join(orderp, by = "order_id") %>% 
     left_join(select(products,-product_name))
+
+recent = orders_products[,c("product_id","order_id","user_id")]
+recent = as.data.table(recent)
+recent = recent[!duplicated(recent)]
 
 # Users -------------------------------------------------------------------
 r_users <- orders %>%
@@ -114,23 +111,13 @@ prd <- prd %>% select(-r_prod_first_orders, -r_prod_second_orders)
 rm(orderp,orders)
 gc()
 
-data = fread("/Users/xiaofeifei/I/Kaggle/Basket/feature_clean.csv")
-
-data = data %>% 
+recent = recent %>% 
   left_join(prd, by = "product_id") %>%
   left_join(r_users, by = "user_id")
   
 rm(aisles, departments,orders_products,prd,products,r_users)
 
-
-data$eval_set.y = NULL
-data$time_since_last_order.y = NULL
-data$order_id.y = NULL
-data$aisle_id.y = NULL
-data$department_id.y = NULL
-data$up_last_day.y = NULL
-colnames(data)[c(8,27,28,29,30,31)] = c("up_last_day", "order_id", "eval_set","time_since_last_order", "aisle_id","department_id" )
-
-fwrite(data, file = "/Users/xiaofeifei/I/Kaggle/Basket/feature_clean.csv", row.names = F)
-
-
+recent$order_id.y=NULL
+recent$eval_set = NULL
+colnames(recent)[2] = 'order_id'
+fwrite(recent, file = "/Users/xiaofeifei/I/Kaggle/Basket/feature_recent.csv",row.names = F)

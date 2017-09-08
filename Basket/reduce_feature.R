@@ -4,6 +4,10 @@ importance = fread("/Users/xiaofeifei/I/Kaggle/Basket/impotance.csv")
 data = as.data.table(data)
 data = data[,c("eval_set","order_id","product_id","reordered","user_id","aisle_id",importance$Feature[1:50]), with = FALSE]
 
+cols = importance$Feature[1:50]
+cols = cols[-36]
+data = data[,(cols) := round(.SD,3), .SDcols=cols]
+
 e_feature = fread("/Users/xiaofeifei/I/Kaggle/Basket/early_feature.csv")
 rc_feature = fread("/Users/xiaofeifei/I/Kaggle/Basket/recent_comple.csv")
 

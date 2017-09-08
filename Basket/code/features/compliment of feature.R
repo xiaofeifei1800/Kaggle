@@ -133,20 +133,7 @@ data = data %>%
   left_join(user_hour) %>%
   left_join(user_dow)
 
-data = fread("/Users/xiaofeifei/I/Kaggle/Basket/feature_clean.csv")
-
-data = data %>%
-  left_join(data1, by = c("user_id", "product_id","order_id"))
-
-rm(data1)
-data$ua_order_frequency.y = NULL
-data$user_orders.y = NULL
-data$up_most_dow.y = NULL
-data$product_name = NULL
-colnames(data)[c(16,21,38)] = c("user_orders","up_most_dow","ua_order_frequency")
-
-data[is.na(data)] = 0
-fwrite(data, file = "/Users/xiaofeifei/I/Kaggle/Basket/feature.csv", row.names = F)
+fwrite(data, file = "/Users/xiaofeifei/I/Kaggle/Basket/feature_compli.csv", row.names = FALSE)
 
 
 

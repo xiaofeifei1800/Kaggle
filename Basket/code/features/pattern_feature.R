@@ -2,6 +2,10 @@ library(data.table)
 library(dplyr)
 library(tidyr)
 
+# Pattern --------------------------------
+# 1010101
+# 000100010010101
+# 000000011111
 
 # Load Data ---------------------------------------------------------------
 path <- "/Users/xiaofeifei/I/Kaggle/Basket/"

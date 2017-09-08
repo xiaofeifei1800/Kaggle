@@ -1,12 +1,3 @@
-###########################################################################################################
-#
-# Kaggle Instacart competition
-# Fabien Vavrand, June 2017
-# Simple xgboost starter, score 0.3791 on LB
-# Products selection is based on product by product binary classification, with a global threshold (0.21)
-#
-###########################################################################################################
-
 library(data.table)
 library(dplyr)
 library(tidyr)

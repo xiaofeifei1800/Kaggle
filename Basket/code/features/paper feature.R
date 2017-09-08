@@ -2,6 +2,10 @@ library(data.table)
 library(dplyr)
 library(tidyr)
 
+# Feature from paper ---------------------------------------
+# Repeat Buyer Prediction for E-Commerce
+# http://www.kdd.org/kdd2016/papers/files/adf0160-liuA.pdf
+
 # Load Data ---------------------------------------------------------------
 path <- "/Users/xiaofeifei/I/Kaggle/Basket/"
 orderp <- fread(file.path(path, "order_products__prior.csv"))
@@ -17,6 +21,9 @@ orders_products <- orders %>% inner_join(orderp, by = "order_id") %>%
 
 rm(orderp,products)
 
+paper = orders_products[,c("product_id","department_id","aisle_id","user_id")]
+paper = as.data.table(paper)
+paper = paper[!duplicated(paper)]
 # Repeat buyer features
 p <- orders_products %>%
   filter(reordered == 1)%>%
@@ -172,23 +179,19 @@ up[is.na(up)]=0
 
 rm(orders, orders_products)
 # combine
-data = fread("/Users/xiaofeifei/I/Kaggle/Basket/feature.csv")
+data = fread("/Users/xiaofeifei/I/Kaggle/Basket/feature.csv",select = c("product_id",
+                                                                        "user_id"))
 
-data = data %>%
-  # left_join(a)
-  # left_join(d)
-  # left_join(p)
-  # left_join(pa)
-  # left_join(pd)
+paper = paper %>%
+  # left_join(a)%>%
+  left_join(d)%>%
+  left_join(p)%>%
+  left_join(pa)%>%
+  left_join(pd)%>%
   left_join(up)
 
-fwrite(data, file = "/Users/xiaofeifei/I/Kaggle/Basket/feature.csv", row.names = F)
+fwrite(paper, file = "/Users/xiaofeifei/I/Kaggle/Basket/paper_feature.csv", row.names = F)
 
-data = as.data.table(data)
-data = data[,c("eval_set","order_id","product_id","reordered","user_id",importance$Feature[1:50]), with = FALSE]
-
-  
-  
   
 
 
