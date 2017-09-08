@@ -1,4 +1,4 @@
-nstacart Market Basket Analysis
+Instacart Market Basket Analysis
 -----------------------
 
 This competition gives customer orders over time, and the aim of this competition is to predict if existing customers will order the same products which they order previously. [here](https://www.kaggle.com/c/instacart-market-basket-analysis).
