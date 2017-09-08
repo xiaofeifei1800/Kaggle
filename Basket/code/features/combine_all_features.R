@@ -27,4 +27,4 @@ feature = feature %>%
   left_join(word2vec, by=c("product_id"))
 
 
-fwrite(feature, file = "/Users/xiaofeifei/I/Kaggle/Basket/all_features.csv")
+fwrite(feature, file = "/Users/xiaofeifei/I/Kaggle/Basket/all_features.csv", row.names = F)
