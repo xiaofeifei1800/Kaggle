@@ -1,31 +1,30 @@
 import pandas as pd
 import numpy as np
 from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier, ExtraTreesRegressor
-from sklearn.decomposition import PCA, FastICA
+
 from sklearn.preprocessing import RobustScaler
 from sklearn.pipeline import make_pipeline, Pipeline, _name_estimators
-from sklearn.linear_model import ElasticNet, ElasticNetCV
 from sklearn.model_selection import cross_val_score, KFold
-from sklearn.metrics import r2_score
+from sklearn.metrics import accuracy_score
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.linear_model import Ridge, LassoLarsCV
-from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.neighbors import KNeighborsClassifier
+from lightgbm import LGBMClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
 import xgboost as xgb
 
 path = "/Users/xiaofeifei/I/Kaggle/Benz/"
 
-train = pd.read_csv(path+'train_start.csv', nrows = 1000)
-test = pd.read_csv(path+'test_start.csv', nrows = 10)
+train = pd.read_csv(path+'train_start.csv')
+test = pd.read_csv(path+'test_start.csv')
 
-y_train = train['y'].values
-y_mean = np.mean(y_train)
+y_train = train['class']
+# y_train = y_train-1
 id_test = test['ID']
 
 num_train = len(train)
 df_all = pd.concat([train, test])
-df_all.drop(['ID', 'y'], axis=1, inplace=True)
+df_all.drop(['ID', 'y',"class"], axis=1, inplace=True)
 
 # One-hot encoding of categorical/strings
 df_all = pd.get_dummies(df_all, drop_first=True)
@@ -49,10 +48,10 @@ class AddColumns(BaseEstimator, TransformerMixin):
 
 class LogExpPipeline(Pipeline):
     def fit(self, X, y):
-        super(LogExpPipeline, self).fit(X, np.log1p(y))
+        super(LogExpPipeline, self).fit(X, y)
 
     def predict(self, X):
-        return np.expm1(super(LogExpPipeline, self).predict(X))
+        return super(LogExpPipeline, self).predict(X)
 
 #
 # Model/pipeline with scaling,pca,svm
@@ -61,7 +60,7 @@ knn_pipe = LogExpPipeline(_name_estimators([RobustScaler(),
                                             KNeighborsClassifier(n_neighbors = 15, metric = 'cityblock')]))
 #
 svm_pipe = LogExpPipeline(_name_estimators([RobustScaler(),
-                                            SVC(kernel='rbf', C=30, epsilon=0.05)]))
+                                            SVC(kernel='rbf', C=14)]))
 
 # results = cross_val_score(svm_pipe, train, y_train, cv=5, scoring='r2')
 # print("SVM score: %.4f (%.4f)" % (results.mean(), results.std()))
@@ -71,8 +70,8 @@ svm_pipe = LogExpPipeline(_name_estimators([RobustScaler(),
 #
 # XGBoost model
 #
-xgb_model = xgb.XGBClassifier(max_depth=7, learning_rate=0.01, subsample=0.921,
-                                     objective='multi:softmax', n_estimators=1300)
+xgb_model = xgb.XGBClassifier(max_depth=4, learning_rate=0.0045, subsample=0.921,nthread=6,
+                                     objective='multi:softmax', n_estimators=500)
 
 
 # results = cross_val_score(xgb_model, train, y_train, cv=5, scoring='r2')
@@ -82,21 +81,20 @@ xgb_model = xgb.XGBClassifier(max_depth=7, learning_rate=0.01, subsample=0.921,
 #
 # Random Forest
 #
-rf_model = RandomForestRegressor(n_estimators=500, n_jobs=4, min_samples_split=10,
-                                 min_samples_leaf=30, max_depth=3)
+rf_model = RandomForestClassifier(n_estimators=500, n_jobs=6, min_samples_split=20,
+                                 min_samples_leaf=25, max_depth=5)
 
 # results = cross_val_score(rf_model, train, y_train, cv=5, scoring='r2')
 # print("RF score: %.4f (%.4f)" % (results.mean(), results.std()))
 
-# ridge
-Ridge = Ridge(alpha=37)
+# NN
+NN_pipe = LogExpPipeline(_name_estimators([RobustScaler(),
+                                           MLPClassifier(hidden_layer_sizes=(25, 50), activation='relu',
+                                                         alpha=0.0001,early_stopping=True, max_iter=1000)]))
 
-# lasso
-lasso = LassoLarsCV(normalize=True)
-
-#GBR
-gbm = GradientBoostingRegressor(learning_rate=0.001, loss="huber", max_depth=3, max_features=0.55, min_samples_leaf=18,
-min_samples_split=14, subsample=0.7)
+# lightgbm
+lightgbm = LGBMClassifier(boosting_type='gbdt', num_leaves=10, max_depth=4, learning_rate=0.005, n_estimators=500,
+                       objective="multiclass",max_bin=25, subsample=0.995, silent=True, nthread=6)
 
 
 #
@@ -123,7 +121,6 @@ class Ensemble(object):
         S_train = np.zeros((X.shape[0], len(self.base_models)))
         S_test = np.zeros((T.shape[0], len(self.base_models)))
         for i, clf in enumerate(self.base_models):
-
             S_test_i = np.zeros((T.shape[0], self.n_splits))
 
             for j, (train_idx, test_idx) in enumerate(folds):
@@ -135,29 +132,29 @@ class Ensemble(object):
                 clf.fit(X_train, y_train)
                 y_pred = clf.predict(X_holdout)[:]
 
-                print ("Model %d fold %d score %f" % (i, j, r2_score(y_holdout, y_pred)))
+                print ("Model %d fold %d score %f" % (i, j, accuracy_score(y_holdout, y_pred)))
 
                 S_train[test_idx, i] = y_pred
                 S_test_i[:, j] = clf.predict(T)[:]
             S_test[:, i] = S_test_i.mean(axis=1)
-            oof_score = r2_score(y, S_train[:, i])
+            oof_score = accuracy_score(y, S_train[:, i])
             print 'Final Out-of-Fold Score %f'%oof_score
         return S_train, S_test
 
 
-#knn_pipe,svm_pipe, en,xgb_model, rf_model, Ridge, lasso, gbm
+# knn_pipe,svm_pipe,NN_pipe,xgb_model,rf_model,lightgbm
 stack = Ensemble(n_splits=5,
                  #stacker=ElasticNetCV(l1_ratio=[x/10.0 for x in range(1,10)]),
                  stacker= xgb.XGBRegressor(max_depth=4, learning_rate=0.0045, subsample=0.93,
-                                     objective='reg:linear', n_estimators=1300, base_score=y_mean),
-                 base_models=(knn_pipe,svm_pipe))
+                                     objective='reg:linear', n_estimators=1300),
+                 base_models=(knn_pipe,svm_pipe,NN_pipe,xgb_model,rf_model,lightgbm))
 
 S_train, S_test = stack.fit_predict(train, y_train, test)
 
 S_train = pd.DataFrame(S_train)
 S_test = pd.DataFrame(S_test)
-S_train.columns = ["knn", "svm"] #, "en", "xgb", "rf", "Ridge", "lasso", "gbm"
-S_test.columns = ["knn", "svm"]#, "en", "xgb", "rf", "Ridge", "lasso", "gbm"
+S_train.columns = ["knn_pipe","svm_pipe","NN_pipe","xgb_model","rf_model","lightgbm"] #"knn_pipe","svm_pipe","NN_pipe","xgb_model","rf_model","lightgbm"
+S_test.columns = ["knn_pipe","svm_pipe","NN_pipe","xgb_model","rf_model","lightgbm"]
 
-S_train.to_csv('stacking_reg_train.csv', index=False)
-S_test.to_csv('stacking_reg_test.csv', index=False)
+S_train.to_csv('stacking_cla_train.csv', index=False)
+S_test.to_csv('stacking_cla_test.csv', index=False)

@@ -14,16 +14,20 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.neighbors import KNeighborsRegressor
 import xgboost as xgb
 
+
 path = "/Users/xiaofeifei/I/Kaggle/Benz/"
 
 train = pd.read_csv(path+'train_start.csv')
 test = pd.read_csv(path+'test_start.csv')
+train.drop(["class"], axis=1, inplace=True)
 
 y_train = train['y'].values
 y_mean = np.mean(y_train)
 id_test = test['ID']
 
 num_train = len(train)
+print train.shape
+print test.shape
 df_all = pd.concat([train, test])
 df_all.drop(['ID', 'y'], axis=1, inplace=True)
 

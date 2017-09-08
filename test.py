@@ -1,107 +1,109 @@
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+from collections import Counter
+from sklearn.datasets import load_svmlight_files
+from sklearn.linear_model import LogisticRegression
+from KaggleWord2VecUtility import KaggleWord2VecUtility
 
-from sklearn.ensemble import GradientBoostingClassifier
+def tokenize(sentence, grams):
+    words = KaggleWord2VecUtility.review_to_wordlist(sentence)
+    tokens = []
+    for gram in grams:
+        for i in range(len(words) - gram + 1):
+            tokens += ["_*_".join(words[i:i+gram])]
+    return tokens
 
-train_loc = '/Users/xiaofeifei/I/Kaggle/GBDT/train.csv'
-test_loc = 'test.csv'
-TREES = 30
-NODES = 7
 
-def get_leaf_indices(ensemble, x):
-    x = x.astype(np.float32)
-    trees = ensemble.estimators_
-    n_trees = trees.shape[0]
-    indices = []
+def build_dict(data, grams):
+    dic = Counter()
+    for token_list in data:
+        dic.update(token_list)
+    return dic
 
-    for i in range(n_trees):
-        tree = trees[i][0].tree_
-        indices.append(tree.apply(x))
 
-    indices = np.column_stack(indices)
+def compute_ratio(poscounts, negcounts, alpha=1):
+    alltokens = list(set(poscounts.keys() + negcounts.keys()))
+    dic = dict((t, i) for i, t in enumerate(alltokens))
+    d = len(dic)
 
-    return indices
-    
-# clean data
-def clean(data):
-    data['Age'].fillna(data['Age'].median(), inplace = True)
-    data['FamilySize'] = data['SibSp'] + data['Parch']
-    data['AgeClass'] = data.Age * data.Pclass
-    data['Gender'] = data['Sex'].map( {'female': 0, 'male': 1} ).astype(int)
-    
-    data = data.drop(['Name', 'Ticket', 'Cabin', 'Embarked', 'Sex'], axis = 1)
-    
-    return data
-    
-def load_fit_data(path, gbt):
-    fit_x = pd.read_csv(path)
-    fit_x = clean(fit_x)
-    fit_y = fit_x['Survived'].astype(int).values
-    fit_x = fit_x.drop('Survived', 1)
+    print "Computing r...\n"
 
-    fit_x = pd.get_dummies(fit_x).values
-    
-    gbt.fit(fit_x, fit_y)
-	
-    return gbt
+    p, q = np.ones(d) * alpha , np.ones(d) * alpha
+    for t in alltokens:
+        p[dic[t]] += poscounts[t]
+        q[dic[t]] += negcounts[t]
+    p /= abs(p).sum()
+    q /= abs(q).sum()
+    r = np.log(p/q)
+    return dic, r
 
-def vw_ready(data):
-	data[data == 0] = -1
-	data = (data.astype(str) + ' |C').as_matrix()
-	
-	return data
 
-def load_data(path, gbt, train):
-    reader = pd.read_csv(path, chunksize = 100)
-    for chunk in reader:
-        if train == True:
-            chunk = clean(chunk)
-            y = chunk['Survived'].astype(int)
-            chunk = chunk.drop('Survived', 1)
-            chunk = chunk.drop('PassengerId', 1)
-            y = vw_ready(y)
+def generate_svmlight_content(data, dic, r, grams):
+    output = []
+
+    for _, row in data.iterrows():
+        tokens = tokenize(row['review'], grams)
+        indexes = []
+        for t in tokens:
+            try:
+                indexes += [dic[t]]
+            except KeyError:
+                pass
+        indexes = list(set(indexes))
+
+        indexes.sort()
+        if 'sentiment' in row:
+            line = [str(row['sentiment'])]
         else:
-            chunk = clean(chunk)
-            y = chunk['PassengerId']
-            chunk = chunk.drop('PassengerId', 1)
-            y = (y.astype(str) + ' |C').as_matrix()
-        
-        orig = []
-        for colname in list(chunk.columns.values):
-            orig.append(colname + chunk[colname].astype(str))
+            line = ['0']
+        for i in indexes:
+            line += ["%i:%f" % (i + 1, r[i])]
+        output += [" ".join(line)]
 
-        orig = np.column_stack(orig)
+    return "\n".join(output)
 
-        gbt_tree = get_leaf_indices(gbt, pd.get_dummies(chunk).values).astype(str)
 
-        chunk = chunk.values
-        for row in range(0, chunk.shape[0]):
-            for column in range(0, TREES, 1):
-                gbt_tree[row,column] = ('T' + str(column) + str(gbt_tree[row, column]))
+def generate_svmlight_files(train, test, grams, outfn):
+    ngram = [int(i) for i in grams]
+    ptrain = []
+    ntrain = []
 
-        
-        print gbt_tree
-        out = np.column_stack((y, orig, gbt_tree))
+    print "Parsing training data...\n"
 
-        if train == True:
-            file_handle = file('tree.train.txt', 'a')
-            np.savetxt(file_handle, out, delimiter = ' ', fmt = '%s')
-            file_handle.close()
-        else:
-            file_handle = file('tree.test.txt', 'a')
-            np.savetxt(file_handle, out, delimiter = ' ', fmt = '%s')
-            file_handle.close()
-            
-def main():
-    gbt = GradientBoostingClassifier(n_estimators = TREES, max_depth = NODES, verbose = 1)
-    
-    gbt = load_fit_data(train_loc, gbt)
-    
-    print('transforming and writing training data ... ')
-    load_data(train_loc, gbt, train = True)
-    
-    # print('transforming and writing testing data ... ')
-    # load_data(test_loc, gbt, train = False)
-    
+    for _, row in train.iterrows():
+        if row['sentiment'] == 1:
+            ptrain.append(tokenize(row['review'], ngram))
+        elif row['sentiment'] == 0:
+            ntrain.append(tokenize(row['review'], ngram))
+
+    pos_counts = build_dict(ptrain, ngram)
+    neg_counts = build_dict(ntrain, ngram)
+
+    print pos_counts
+
+    dic, r = compute_ratio(pos_counts, neg_counts)
+
+    f = open(outfn + '-train.txt', "w")
+    f.writelines(generate_svmlight_content(train, dic, r, ngram))
+    f.close()
+
+    print "Parsing test data...\n"
+
+    f = open(outfn + '-test.txt', "w")
+    f.writelines(generate_svmlight_content(test, dic, r, ngram))
+    f.close()
+
+    print "SVMlight files have been generated!"
+
+
 if __name__ == '__main__':
-    main()
+    train = pd.read_csv('/Users/xiaofeifei/I/labeledTrainData.tsv', header=0, delimiter="\t", quoting=3, nrows = 10)
+    print train
+    test = pd.read_csv('/Users/xiaofeifei/I/testData.tsv', header=0, delimiter="\t", quoting=3, nrows = 10 )
+
+
+
+    print "Generating the svmlight-format files...\n"
+
+    generate_svmlight_files(train, test, '123', '/Users/xiaofeifei/I/nbsvm')
