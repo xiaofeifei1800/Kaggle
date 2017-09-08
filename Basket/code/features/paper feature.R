@@ -178,9 +178,6 @@ up = as.data.table(up)
 up[is.na(up)]=0
 
 rm(orders, orders_products)
-# combine
-data = fread("/Users/xiaofeifei/I/Kaggle/Basket/feature.csv",select = c("product_id",
-                                                                        "user_id"))
 
 paper = paper %>%
   # left_join(a)%>%

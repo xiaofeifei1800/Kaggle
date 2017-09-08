@@ -120,4 +120,6 @@ rm(aisles, departments,orders_products,prd,products,r_users)
 recent$order_id.y=NULL
 recent$eval_set = NULL
 colnames(recent)[2] = 'order_id'
+
+rc_feature= rc_feature[,-c('r_up_last_day', 'r_up_most_dow', 'r_up_last_day', 'r_up_most_dow')]
 fwrite(recent, file = "/Users/xiaofeifei/I/Kaggle/Basket/feature_recent.csv",row.names = F)

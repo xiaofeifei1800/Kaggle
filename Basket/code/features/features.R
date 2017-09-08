@@ -236,23 +236,6 @@ data <- data %>%
 rm(ordert, prd, users)
 gc()
 
-# add word2vec
-products <- fread(file.path(path, "products.csv"))
-word2vec = fread(file.path(path, "word2vec.csv"))
-# prod_name = fread(file.path(path, "pca_name.csv"))
-
-products = left_join(products,word2vec)
-# products = left_join(products,prod_name)
-products[is.na(products)] = 0
-
-rm(word2vec)
-
-data = as.data.table(data)
-products = as.data.table(products)
-setkey(data, product_id)
-setkey(products, product_id)
-
-data = merge(data, products, all.x = T)
 fwrite(data, file = "/Users/xiaofeifei/I/Kaggle/Basket/feature.csv", row.names = F)
 
 
