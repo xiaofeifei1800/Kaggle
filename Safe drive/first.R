@@ -14,6 +14,7 @@ ggplot(train, aes(train$ps_calc_15_bin)) +
   geom_bar(aes(fill = as.factor(train$target)))
 
 # three major feature, user, user_reg, car, calc
+set.seed(1)
 hold = sample(1:dim(train)[1],dim(train)[1]*0.1)
 dtrain = as.matrix(train[-hold, 3:59, with = FALSE])
 dtest = as.matrix(train[hold, 3:59, with = FALSE])
@@ -69,12 +70,12 @@ model <- lgb.train(list(objective = "binary",
  
 test = fread('/Users/xiaofeifei/I/Kaggle/Safe drive/test.csv')
 
-dtest = as.matrix(test[, 2:58, with = FALSE])
+dtest = as.matrix(test[, 2:74, with = FALSE])
 pred = predict(model, dtest)
 submit = fread('/Users/xiaofeifei/I/Kaggle/Safe drive/sample_submission.csv')
 submit$target = pred
 
-fwrite(submit, file = '/Users/xiaofeifei/I/Kaggle/Safe drive/first.csv', row.names = F)
+fwrite(submit, file = '/Users/xiaofeifei/I/Kaggle/Safe drive/all_feature.csv', row.names = F)
 
 
 

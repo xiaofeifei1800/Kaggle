@@ -1,11 +1,21 @@
 library(data.table)
-library(lightgbm)
 library(ggplot2)
-
+library(MASS)
 
 # ind feature
 train = fread('/Users/xiaofeifei/I/Kaggle/Safe drive/train.csv')
-ind = train[,1:23]
+test = fread('/Users/xiaofeifei/I/Kaggle/Safe drive/test.csv')
+target = train$target
+train$target = NULL
+train$data_index = 'train'
+test$data_index = 'test'
+data = rbind(train, test)
+rm(train,test)
+
+ind = data[,1:22]
+ind$data_index = data$data_index
+
+ind_train = train[,1:23]
 
 # two way interact
 ggplot(train, aes(ind$ps_ind_07_bin)) +
@@ -65,6 +75,8 @@ changeCols = c("ps_two_25", "ps_two_45", "ps_two_412", "ps_two_46",
 ind[,(changeCols):= lapply(.SD, as.factor), .SDcols = changeCols]
 ind[,(changeCols):= lapply(.SD, as.numeric), .SDcols = changeCols]
 
-ind_feature = ind[,c(1,24,25,26,27,28,29,30)]
+data = cbind(data, ind[,24:30])
+# add lda left to python
+
 
 
