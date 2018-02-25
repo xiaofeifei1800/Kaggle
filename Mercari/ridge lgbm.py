@@ -48,8 +48,8 @@ def main():
 
     nrow_train = train.shape[0]
     y = np.log1p(train["price"])
-    merge= pd.DataFrame = pd.concat([train, test])
-    submission= pd.DataFrame = test[['test_id']]
+    merge: pd.DataFrame = pd.concat([train, test])
+    submission: pd.DataFrame = test[['test_id']]
 
     del train
     del test
