@@ -29,7 +29,7 @@ test = pd.read_csv("/Users/xiaofeifei/I/Kaggle/Toxic/clean_test.csv")
 # train = train.sample(frac=1)
 
 list_sentences_train = train["comment_text"].fillna("CVxTz").values
-list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+list_classes = ["Toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
 y = train[list_classes].values
 list_sentences_test = test["comment_text"].fillna("CVxTz").values
 
