@@ -30,8 +30,8 @@ class RocAucEvaluation(Callback):
             print("\n ROC-AUC - epoch: {:d} - score: {:.6f}".format(epoch+1, score))
 
 embed_size = 200 # how big is each word vector
-max_features = 100000 # how many unique words to use (i.e num rows in embedding vector)
-maxlen = 150 # max number of words in a comment to use
+max_features = 20000  # how many unique words to use (i.e num rows in embedding vector)
+maxlen = 100 # max number of words in a comment to use
 
 train = pd.read_csv(TRAIN_DATA_FILE)
 test = pd.read_csv(TEST_DATA_FILE)
@@ -78,26 +78,19 @@ for word, i in word_index.items():
 inp = Input(shape=(maxlen,))
 x = Embedding(max_features, embed_size, weights=[embedding_matrix])(inp)
 x = SpatialDropout1D(0.2)(x)
-x = Bidirectional(GRU(128, return_sequences=True))(x)
-x = Conv1D(64, kernel_size = 3, padding = "valid", kernel_initializer = "glorot_uniform")(x)
+x = Bidirectional(GRU(100, return_sequences=True))(x)
 max_pool = GlobalMaxPool1D()(x)
 avg_pool = GlobalAveragePooling1D()(x)
 x = concatenate([avg_pool, max_pool])
-x = Dense(64, activation="relu")(x)
+x = Dense(100, activation="relu")(x)
 x = Dropout(0.1)(x)
 x = Dense(6, activation="sigmoid")(x)
 model = Model(inputs=inp, outputs=x)
 model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-X_tra, X_val, y_tra, y_val = train_test_split(X_t, y, train_size=0.9, random_state=233)
-early = EarlyStopping(monitor="val_acc", mode="max", patience=5)
-ra_val = RocAucEvaluation(validation_data=(X_val, y_val), interval = 1)
-callbacks_list = [ra_val, early]
-
-model.fit(X_tra, y_tra, batch_size=128, epochs=4, validation_data=(X_val, y_val),
-          callbacks = callbacks_list,verbose=1)
+model.fit(X_t, y, batch_size=32, epochs=4, validation_split=0.1)
 
 y_test = model.predict([X_te], batch_size=1024, verbose=1)
 sample_submission = pd.read_csv('/Users/guoxinli/I/data/data/sample_submission.csv')
 sample_submission[list_classes] = y_test
-sample_submission.to_csv('/Users/guoxinli/I/data/data/submission_twitter_v1_con_gru_conv.csv', index=False)
+sample_submission.to_csv('/Users/guoxinli/I/data/data/submission_twitter_v1_con_gru.csv', index=False)
