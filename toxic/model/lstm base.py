@@ -23,13 +23,13 @@ max_features = 20000
 maxlen = 100
 
 
-train = pd.read_csv("/Users/xiaofeifei/I/Kaggle/Toxic/clean_train.csv")
-test = pd.read_csv("/Users/xiaofeifei/I/Kaggle/Toxic/clean_test.csv")
+train = pd.read_csv("/Users/xiaofeifei/I/Kaggle/toxic/clean_train.csv")
+test = pd.read_csv("/Users/xiaofeifei/I/Kaggle/toxic/clean_test.csv")
 
 # train = train.sample(frac=1)
 
 list_sentences_train = train["comment_text"].fillna("CVxTz").values
-list_classes = ["Toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+list_classes = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
 y = train[list_classes].values
 list_sentences_test = test["comment_text"].fillna("CVxTz").values
 
@@ -81,10 +81,10 @@ y_test = model.predict(X_te)
 
 
 
-sample_submission = pd.read_csv("/Users/xiaofeifei/I/Kaggle/Toxic/sample_submission.csv")
+sample_submission = pd.read_csv("/Users/xiaofeifei/I/Kaggle/toxic/sample_submission.csv")
 
 sample_submission[list_classes] = y_test
 
 
 
-sample_submission.to_csv("/Users/xiaofeifei/I/Kaggle/Toxic/baseline_conca_clean3.csv", index=False)
+sample_submission.to_csv("/Users/xiaofeifei/I/Kaggle/toxic/baseline_conca_clean3.csv", index=False)

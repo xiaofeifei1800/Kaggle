@@ -7,7 +7,7 @@ import re
 from string import punctuation
 
 
-F = open('/Users/xiaofeifei/I/Kaggle/Toxic/spell_correct.txt','r')
+F = open('/Users/xiaofeifei/I/Kaggle/toxic/spell_correct.txt','r')
 
 spell_check = {}
 for line in F:
@@ -18,7 +18,7 @@ stop_words = ['the','a','an','and','but','if','or','because','as','what','which'
               'just','so','than','such','both','through','about','for','is','of','while','during','to','What','Which',
               'Is','If','While','This']
 
-df = pd.read_csv("/Users/xiaofeifei/I/Kaggle/Toxic/clean_spam_test.csv")
+df = pd.read_csv("/Users/xiaofeifei/I/Kaggle/toxic/clean_spam_test.csv")
 def text_to_wordlist(text, remove_stop_words=True, stem_words=False):
     # Clean the text, with the option to remove stop_words and to stem words.
 
@@ -109,4 +109,4 @@ df.comment_text = df.comment_text.apply(lambda x: x.lower())
 df.comment_text = df.comment_text.apply(lambda x: text_to_wordlist(x))
 
 
-df.to_csv("/Users/xiaofeifei/I/Kaggle/Toxic/clean_test.csv", index=False)
+df.to_csv("/Users/xiaofeifei/I/Kaggle/toxic/clean_test.csv", index=False)
